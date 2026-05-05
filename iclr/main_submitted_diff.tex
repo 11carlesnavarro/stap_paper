@@ -1,0 +1,1342 @@
+\documentclass{article}
+
+% Language setting
+% Replace `english' with e.g. `spanish' to change the document language
+\usepackage[english]{babel}
+\usepackage{iclr2026_conference,times}
+\usepackage{natbib}              % provides \citet, \citep
+\setcitestyle{authoryear,round}  % ICLR uses author–year
+\usepackage{enumitem}
+\usepackage{url}
+% Set page size and margins
+% Replace `letterpaper' with `a4paper' for UK/EU standard size
+\usepackage[a4paper,top=2cm,bottom=2cm,left=3cm,right=3cm,marginparwidth=1.75cm]{geometry}
+
+% Useful packages
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage[colorlinks=true, allcolors=blue]{hyperref}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{subcaption}
+
+%%%%% STUFF %%%
+% --- Packages for Appendix Chat Formatting ---
+\usepackage[most]{tcolorbox} % Use tcolorbox instead of framed
+\usepackage{graphicx}        % For \includegraphics
+\usepackage{caption}         % For \captionof
+\usepackage{enumitem}        % For custom lists
+\usepackage{verbatim}        % For the verbatim environment
+
+\usepackage{xcolor}
+\newif\ifrevision
+\revisiontrue % Set to \revisionfalse for the camera-ready version
+
+\ifrevision
+  \newcommand{\new}[1]{\textcolor{blue}{#1}}
+  \newcommand{\newtable}{\color{blue}}
+\else
+  \newcommand{\new}[1]{#1}
+  \newcommand{\newtable}{}
+\fi
+% --- Custom tcolorbox styles for the chat ---
+\newtcolorbox{userbox}{
+  colback=blue!5!white,      % Light blue background
+  colframe=blue!20!white,    % Border color
+  boxsep=5pt,
+  arc=4mm,
+  left=10pt,
+  right=10pt,
+  top=10pt,
+  bottom=10pt,
+  breakable,                 % Allows the box to break across pages
+}
+
+\newtcolorbox{assistantbox}{
+  colback=black!5!white,     % Light grey background
+  colframe=black!20!white,   % Border color
+  boxsep=5pt,
+  arc=4mm,
+  left=10pt,
+  right=10pt,
+  top=10pt,
+  bottom=10pt,
+  breakable,
+}
+
+%\title{PlayMolecule AI: Speak to a Protein}
+\title{Speak to a Protein: An Interactive Multimodal Co-Scientist for Protein Analysis} % for anonymous submission
+%\title{Speak to a Protein: An Interactive Multimodal Co-Scientist for Protein Analysis in the PlayMolecule Platform}
+\author{Carles}
+\author{Mariona}
+\author{Philipp}
+\author{Stefan}
+\author{Gianni}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Building a working mental model of a protein typically requires weeks of reading, cross-referencing crystal and predicted structures, and inspecting ligand complexes, an effort that is slow, unevenly accessible, and often requires specialized computational skills. We introduce \emph{Speak to a Protein}, a new capability that turns protein analysis into an interactive, multimodal dialogue with an expert co-scientist. The AI system retrieves and synthesizes relevant literature, structures, and ligand data; grounds answers in a live 3D scene; and can highlight, annotate, manipulate and see the visualization. It also generates and runs code when needed, explaining results in both text and graphics.
+We demonstrate these capabilities on relevant proteins, posing questions about binding pockets, conformational changes, or structure-activity relationships to test ideas in real-time. \emph{Speak to a Protein} reduces the time from question to evidence, lowers the barrier to advanced structural analysis, and enables hypothesis generation by tightly coupling language, code, and 3D structures. \emph{Speak to a Protein} is freely accessible at \url{https://www.anonymousplayground.com}.
+\end{abstract}
+
+\paragraph{Keywords} Agentic co-scientist, scientific discovery, molecular visualization, deep research, drug discovery, retrieval-augmented generation
+
+\section{Introduction}\label{sec:intro}
+Proteins are the molecular machinery of life, and understanding their structure and function is fundamental to modern biology and medicine. For a researcher in drug discovery or molecular biology, developing an intuitive, "working mental model" of a target protein, its active sites, its conformational dynamics, and its network of interactions is a critical first step. However, this process is slow and arduous, often requiring a combination of deep domain knowledge and specialized computational skills.
+
+A researcher investigating a protein kinase to understand how a new series of inhibitors might bind must embark on a fragmented and technically demanding workflow. This involves sifting through the PubMed literature~\citep{Sayers2020}, fetching and comparing multiple structures from the Protein Data Bank (PDB)~\citep{Burley2018}, querying UniProt~\citep{UniProt2022}  for functional annotations and disease-associated variants, and extracting structure-activity relationship (SAR) data from databases like ChEMBL~\citep{Mendez2018}. Each step requires navigating different interfaces and data formats. Furthermore, deeper analysis, such as superimposing structures, identifying key interactions, or plotting bioactivity data, requires proficiency with specialized software or scripting languages, creating a significant barrier to entry for many bench scientists. This high friction for asking and answering questions restrains curiosity and slows the pace of discovery.
+
+To address these challenges, we introduce \emph{Speak to a Protein}, a new capability 
+%in the PlayMolecule AI platform 
+designed to transform protein analysis into an interactive dialogue with an AI co-scientist that collaborates with the user in real-time. Using recent advances in large language models (LLMs) \new{and their evolution into multimodal scientific agents \citep{Caffagni2024, Zhang2024, Wang2024}}, our system can comprehend complex, natural language queries about a protein of interest. It autonomously retrieves, integrates, and synthesizes information from a comprehensive suite of biological data sources, including literature, structural repositories, and biochemical databases.
+
+The core innovation of \emph{Speak to a Protein} is its ability to ground its responses across multiple, synchronized modalities. When a user asks a question, the AI does not simply return text. It interacts with a live 3D structural viewer to highlight residues, measure distances, or annotate binding pockets. It can generate and execute Python code in a sandboxed environment to perform calculations, filter tabular data, or generate plots on the fly. Furthermore, the AI co-scientist sees, understands and controls the visualization, offering a natural interaction with the user. This tight coupling of natural language, 3D visualization, and code execution creates a seamless and intuitive environment for scientific exploration. 
+
+This paper makes the following contributions: We present the design and architecture of an AI system that integrates language, code execution, and 3D visualization for interactive protein analysis. We show how this multimodal approach drastically lowers the barrier to complex structural and biochemical data analysis. Through case studies on relevant proteins, we show that this system enables a more fluid and powerful form of hypothesis generation, accelerating the cycle from question to evidence.
+
+%We begin by reviewing related work in Section \ref{sec:related}, followed by a detailed description of the system's architecture in Section \ref{sec:overview}. We then describe the knowledge and data sources it relies on (Section \ref{sec:data}) and the multimodal interfaces it coordinates (Section \ref{sec:interfaces}). We showcase the system's utility with a detailed case study on CDK2 and D3R in Section \ref{sec:cases}, and conclude with a discussion of limitations and future directions in Section \ref{sec:discussion}.
+
+\section{Related Work}\label{sec:related}
+%AI Scientist
+The ambition to create an AI capable of scientific discovery is a long-standing goal, articulated in visions such as Hiroaki Kitano's proposal for an "AI Scientist": a system that could autonomously formulate hypotheses, design experiments, and achieve Nobel-class discoveries \citep{kitano2021}. While such a fully autonomous system \citep{boiko2023autonomous, zou2025agente} remains a grand challenge, recent progress in large language models (LLMs) has enabled the development of a more immediate and collaborative paradigm: the "AI co-scientist" or "advanced intelligence" in Kitano's words. 
+
+%\subsection{Conversational and Multimodal Protein Assistants}
+Early systems explored conversational interfaces for structural inspection and Q\&A over proteins. \citet{guo2023proteinchat} demonstrated \emph{ProteinChat}, which couples LLM prompting with protein 3D structures to answer user questions about residues and pockets. Contemporary efforts such as \citet{wang2024protchatgpt} and \citet{xiao2024proteingpt} investigate protein-aware prompting and multimodal conditioning for function/property reasoning. Most recently, \citet{wang2025prot2chat} proposes \emph{Prot2Chat}, an LLM that fuses protein sequence, structure, and text via an early-fusion adapter, directly targeting protein Q\&A.
+
+%\subsection{Structure-Aware Tools and Visualization Copilots}
+Beyond text-only chat, domain copilots increasingly drive molecular viewers and modeling tools. \citet{sun2024chatmol} introduce \emph{ChatMol Copilot}, an LLM agent that coordinates cheminformatics and modeling tools (e.g., docking, conformer generation) in response to natural-language requests. In parallel, \citet{ille2024gpt4structural} systematically evaluates GPT-4’s ability to perform rudimentary structural modeling and protein–ligand interaction analysis, highlighting both promise and limitations. Our work is aligned with this line but centers on tightly coupling language, code execution, and a live 3D scene for grounded, manipulable answers.
+
+%\subsection{Agentic LLMs for Chemistry and Drug Discovery}
+Agent frameworks augment LLMs with tool use, retrieval, and planning. \emph{ChemCrow} \citep{bran2024chemcrow} shows that equipping GPT-4 with chemistry tools enables multi-step synthesis planning and materials tasks. More recently, CLADD \citep{lee2025cladd} proposes a retrieval-augmented multi-agent system specialized for drug discovery tasks. \emph{Speak to a Protein} adopts the agentic paradigm for structural biology: it retrieves literature/structures, executes analyses (e.g., pocket mapping, SAR tables), and grounds responses in synchronized 3D visualizations.
+
+%\subsection{Protein–Text Alignment and Cross-Modal LLMs}
+%A complementary thread aligns protein representations with natural language. \citet{wu2024proteinclip} aligns protein LMs with text via contrastive learning; \citet{wang2024instructprotein} uses knowledge-graph–derived instructions to align human and protein “languages.” \emph{ProtST} \citep{xu2023protst} improves sequence models using biomedical text, enabling zero-shot retrieval/classification. \emph{ProtLLM} \citep{zhuo2024protllm} interleaves protein tokens with text via a “protein-as-word” objective, while \emph{LLaPA} \citep{zhou2025llapa} integrates protein encoders and PPI networks into an instruction-following LLM. Our system draws on these ideas to support bidirectional grounding: language queries that reference sequence/structure context, and code/visual actions that reflect the language plan.
+
+\new{Compared to prior work, our contribution is an end-to-end, \emph{interactive} co-scientist for proteins that (i) unifies literature/structure/ligand retrieval, (ii) reasons with tabular and 3D modalities, (iii) executes code for on-the-fly analyses, and (iv) directly annotates/manipulates the 3D scene in response to dialogue \new{(Table \ref{tab:system_comparison})}. This tightly coupled language–code–3D loop reduces the time from question to evidence relative to agent-only or text-only systems.}
+<
+\begingroup
+\renewcommand{\arraystretch}{1.3}
+\begin{table}[h]
+\centering
+\caption{\new{Comparison of Speak to a Protein with representative LLM-based systems developed for drug discovery, as well as with general-purpose AI models. Speak to a Protein uniquely combines access to multiple biological databases, scientific literature extraction, on-the-fly code execution, real-time 3D molecular visualization, multimodal reasoning grounded in structural data, and  persistent knowledge management. These capabilities are not collectively available in other existing platforms.}}
+\newtable
+\label{tab:system_comparison}
+\begin{tabularx}{\textwidth}{
+    >{\raggedright\arraybackslash}X
+    >{\raggedright\arraybackslash}X
+    >{\raggedright\arraybackslash}X
+    >{\raggedright\arraybackslash}X
+    >{\raggedright\arraybackslash}X
+    >{\raggedright\arraybackslash}X
+    >{\raggedright\arraybackslash}X
+}
+\toprule
+\textbf{System} & \textbf{API Access} & \textbf{Lit. Extraction} & \textbf{Code Sandbox} & \textbf{3D Vis. Control} & \textbf{Multimodal Reasoning} & \textbf{Persistent Memory} \\
+\midrule
+Speak to a protein & Yes & Yes & Yes & Yes & Yes (Live 3D scene) & Yes \\
+General-purpose AI & Not natively & Partial (cannot retrieve) & Yes & No & No & No \\
+ProteinChat & No & No & No & No & Yes (Structure Description) & No \\
+Prot2Chat & No & No & No & No & Yes (3D/Sequence Fusion) & No \\
+ChatMol Copilot & No & No & No & Yes & Yes (Analyzes structure visualization) & No \\
+ChemCrow & Yes & Yes & Yes & No & No & Yes \\
+CLADD & Yes & Yes & No & No & No & No \\
+\bottomrule
+\end{tabularx}
+\end{table}
+\endgroup
+
+
+
+
+\begin{figure}[tb]
+\centering
+\includegraphics[width=1\linewidth]{Figures/architecture.png}
+\caption{\textbf{Overview of the system architecture.} The system consists of a frontend with a protein viewer and chat interface, which includes a virtual file system and Python sandbox for automated code execution and viewer manipulation. The LLM Agent is the main orchestrator that interacts with the user and calls a set of custom tools through Model Context Protocol (MCP). These tools include a literature search for a given protein and text query, retrieving specialized data through APIs such as UniProt, PDBe and ChEMBL, as well as executing Python code in a sandbox environment with a dedicated virtual file system.}\label{fig:architecture}
+\end{figure}
+
+\section{System Overview: \emph{Speak to a Protein}}\label{sec:overview}
+
+
+%\emph{Speak to a Protein} is an interactive system that transforms protein analysis into a dialogue between the researcher and an AI co-scientist. It unifies literature search, biochemical data analysis, and 3D structural visualization into a single, conversational interface. 
+
+%Users begin by entering natural-language queries through an intuitive chat panel ---for example, asking questions about a protein's structure, function, ligand interactions, or relevant literature. In response, the system provides informative textual answers along with interactive, context-aware outputs: it can highlight molecular features within a live 3D viewer, display relevant literature passages, generate informative tables or plots, and execute custom code for on-the-fly analysis. Researchers can iteratively refine their queries, manipulate the visualization, or request new analyses, with each interaction coordinated by the AI to draw on the most relevant tools and data sources. 
+
+%By integrating language understanding, data retrieval, computation, and visualization, \emph{Speak to a Protein} enables fast, reproducible, and accessible scientific exploration without switching between disparate applications or requiring advanced computational skills. The following section provides a detailed description of the system’s architecture and its main components.
+
+
+\subsection{architecture}
+
+
+\begin{figure}[tb]
+\centering
+\includegraphics[width=1\linewidth]{Figures/viewer.png}
+\caption{
+    \textbf{Interactive analysis of the CDK2 structure (PDB: 1AQ1) using the \emph{Speak to a Protein} multimodal assistant.} 
+    The user enters natural language queries in the AI chat panel (right), and the system responds with both textual answers and real-time updates to the 3D visualization (left). Python code executed in the integrated sandbox is shown in the console (bottom), providing full transparency and reproducibility of the underlying analyses. 
+    }\label{fig:viewer}
+\end{figure}
+
+
+The system architecture of \emph{Speak to a Protein} (Figure \ref{fig:architecture}) is organized around two main components: a front-end for user interaction and visualization, and a back-end for language understanding, tool coordination, and data retrieval.
+This is effectively a visual channel of communication between the AI co-scientist and the human scientist. The front-end provides the primary user interface, incorporating both a conversational chat panel and 3D molecular visualization capabilities (Figure \ref{fig:viewer} and Section \ref{subsec:viewer}). At its core is a Python sandbox powered by Pyodide, enabling the execution of Python code directly in the browser to manipulate structures and control the viewer. The sandbox includes a virtual file system, where structural files and related data are stored for visualization.
+Users interact through the chat panel, entering natural language requests. The system interprets responses from the AI agent and parses them to display textual information in the chat. It also detects when a specialized action is needed and invokes the corresponding viewer tools:
+\begin{itemize}[leftmargin=1em]
+\item \textbf{Virtual file system tool:} Loads required data files from the backend and stores them for visualization.
+\item \textbf{Python tool:} Executes Python code, as generated by the model, to carry out custom analyses or visual manipulations.
+\end{itemize}
+
+The outputs from these tools are sent to the backend, which determines whether additional actions are needed or if results should be presented in the user interface. The backend processes natural language queries and orchestrates all available tools through a central AI agent, running either as a local LLM or via an external API. Upon receiving a user request, the agent plans a sequence of actions, including complex reasoning, modifying the viewer state, or invoking some of its domain-specific tools:
+
+\begin{itemize}[leftmargin=1em]
+\item \textbf{Literature Search:} Retrieves relevant scientific articles and extracts protein-related information from PubMed Central.
+\item \textbf{UniProt Search:} Finds protein entries and annotations, including sequence, function, and cross-references, from the UniProt database.
+\item \textbf{ChEMBL Search:} Retrieves bioactivity and assay data for small molecules and proteins from the ChEMBL database.
+\item \textbf{PDB Search:} Locates experimental 3D structures and related metadata in the Protein Data Bank.
+\item \textbf{MoleculeKit Search:} Enables semantic search through the source code of MoleculeKit \citep{Doerr2016}, a library for structure and formats manipulation.
+\item \textbf{A python sandbox}. Enables server-side computations using advanced libraries.
+\end{itemize}
+
+
+%\section{Knowledge and Data Sources}\label{sec:data}
+The system’s multimodal tooling layer is implemented as \emph{Model Context Protocol (MCP)}~\citep{anthropic_introducing_2024} servers that the model can invoke and compose during an interaction. Each tool provides a structured interface to a core knowledge source, with outputs designed for integration into language reasoning and context-conditioned retrieval-augmented generation (RAG). Concretely, we implement three primary tools: (i) a literature retrieval component that performs sequence- and structure-grounded searches and builds a protein-conditioned RAG corpus from PubMed Central; (ii) a UniProt interface that supports both accession discovery and access to detailed entry information, including sequence data, cross-references, functional annotations, and literature links; and (iii) a ChEMBL interface for harvesting assay activities and surfacing structure–activity relationship (SAR) information. All tools rely on programmatic access to public biological databases and return normalized, machine-readable results, enabling the model to consistently connect protein identity with structural, functional, and biochemical evidence. This modular organization allows complex scientific queries to be decomposed into well-defined tool calls, whose implementation details we describe in Sections~\ref{sec:data:literature}--\ref{sec:data:chembl}.
+
+
+\subsection{Literature Search and Comprehension}\label{sec:data:literature}
+The literature tool constructs a protein-specific corpus that can be searched with a text query. While the literature discovery relies on \emph{curated references from UniProt}, the tool can be invoked with either a UniProt accession, PDB ID or FASTA sequence of the protein in question. If the user provides a UniProt accession, the references linked to this entry are augmented by expanding the selection to all linked PDB structures. If the input is a PDB code, the system first queries UniProt for all entries cross-referenced to that structure, and then collects their reference lists. If the input is a raw FASTA sequence, the system searches the Protein Data Bank to identify matching structures, resolves them to UniProt entries, and again retrieves their references. This pathway ensures that the system always incorporates the expert-curated literature that UniProt associates with a protein, regardless of the initial identifier type.
+
+The result of the literature discovery step yields a diverse set of article identifiers, including PubMed IDs, DOIs, and PubMed Central IDs. To unify them, we normalize all entries to \emph{PubMed Central IDs (PMCIDs)} using a public conversion service. Importantly, only the subset of publications that are openly available on PubMed Central can be downloaded and processed further; articles behind paywalls remain indexed only by their identifiers. For each accessible PMCID, we retrieve the article in XML format, which is efficient to fetch and preserves section and paragraph boundaries. The text is cleaned and segmented into coherent passages that are embedded into a vector space for retrieval-augmented generation (RAG) using LlamaIndex~\citep{Liu_LlamaIndex_2022}.
+
+All passages for a given protein are combined into a \emph{protein-conditioned retrieval index}, together with metadata such as PMCID, DOI, and the set of matched PDB and UniProt identifiers (Table \ref{tab:literature-mcp}). The index is cached on disk along with a list of associated protein identifiers (UniProt accessions, PDB IDs, FASTA sequences), so future queries for the same target can reuse the corpus without repeated downloads. At query time, the system formulates a descriptive retrieval prompt, retrieves the top-$k$ relevant passages, and returns them along with their citations. The retrieved text is then provided to the language model as grounded context, either to directly answer a user’s question (e.g., “Which mutations in CDK2 affect inhibitor binding?”) or to supply background for further analysis and additional tool calls (e.g., filtering ChEMBL assays for compounds tested in the cited studies, or highlighting reported residues in the 3D structural viewer).
+
+Despite involving multiple external databases and full-text retrieval, the entire pipeline runs in real time. Literature discovery, download, and RAG construction typically complete within one to two minutes for a new protein, and subsequent queries on the same target are handled within seconds due to caching of the prebuilt index.
+
+
+
+
+\subsection{UniProt: Accession Discovery and Rich Entry Information}\label{sec\:data\:uniprot}
+The UniProt MCP server provides structured access to the UniProt knowledgebase, enabling both the discovery of correct accessions and the retrieval of detailed entry information. It is organized into two complementary tools. The first is a text search utility that resolves canonical entries from colloquial protein names. This call returns a concise shortlist with entry type, primary accession, protein name, organism, annotation score, and keywords, allowing the model to select the most relevant entry—for example, the reviewed entry of the correct organism—without inflating context.
+
+Once an accession has been identified, the data lookup tool retrieves the corresponding UniProt record or resolves from a PDB identifier when structures are the starting point. The response contains identifiers and provenance suitable for citation, descriptive and gene fields, the full amino acid sequence, span-form features encoding domains, active and binding sites, post-translational modifications, and variants, compressed literature references with bibliographic fields and sequence “focus” positions, and a set of cross-references that link the UniProt entry to other databases (Table \ref{tab:uniprot-mcp-cdk2}). These include structural repositories such as the Protein Data Bank (PDB) and AlphaFoldDB, pharmacological resources such as DrugBank and DrugCentral, and functional annotation databases such as Gene Ontology (GO). This representation is compact but expressive, preserving direct links to external resources while making it straightforward to highlight residues, align sequences, or connect functional information across databases.
+
+In practice, the model first issues a name query (when necessary), selects appropriate entries, and then performs a data lookup to obtain a comprehensive record. The sequence can, for example, be forwarded to the literature tool for protein-conditioned retrieval; feature spans can be used to create residue highlights and distance measurements in the 3D viewer; and cross-references provide pivots to structures, pathways, or pharmacology resources. The separation of discovery (name to accession) and enrichment (accession or PDB to full entry) keeps tool contracts simple, enabling deterministic composition with other MCP servers.
+
+
+
+
+\subsection{ChEMBL: Bioactivity and SAR Tables}\label{sec:data:chembl}
+The ChEMBL MCP server is dedicated to retrieving and organizing information about assays recorded in the ChEMBL database. It focuses specifically on assay-level measurements of how molecules interact with a given protein target. When invoked with a target identifier and an assay type, the tool downloads all matching entries from the ChEMBL API to assemble a complete activity table. To reduce latency and ensure reproducibility, the results are cached locally; repeated queries for the same target reuse this cache until it expires.
+
+Because raw ChEMBL activities are highly heterogeneous, mixing different units, redundant identifiers, and free-text fields, the MCP normalizes the dataset into a streamlined representation that highlights the essential biochemical information (Table \ref{tab:chembl-mcp}). Rarely useful or inconsistent fields are removed, while values necessary for reasoning about structure–activity relationships, such as standard measurements, molecule identifiers, and publication context, are retained. All entries that pass this filtering are written to a tabular file in CSV format. This file is stored on disk and its path is returned alongside a compact summary object.
+
+The stored CSV file plays an important role in the overall system. It is directly accessible in the sandboxed coding environment where the model can execute Python, enabling downstream analysis using libraries such as pandas. For example, the model can reload the file, apply additional filters, calculate statistics, or search for specific compounds that meet criteria relevant to the user’s query. This design separates the heavy data retrieval and normalization step from the flexible, interactive analysis that happens later in dialogue with the scientist.
+
+For functional and binding assays, which are the most commonly used in drug discovery, the tool also highlights the most potent entries with standardized units. This provides a quick surface view of the strongest bioactivity signals, while leaving the full dataset available for deeper inspection. Other assay families, such as ADME or toxicity, are treated similarly but are generally provided only as complete CSV tables, reflecting their diversity in format and measurement.
+
+By structuring ChEMBL assay data into reproducible on-disk artifacts and linking them to a consistent summary interface, the MCP server makes assay information straightforward to query, analyze, and connect to the other knowledge sources in the system. It allows the model to bridge from raw assay measurements to literature and structural contexts, supporting seamless reasoning across biochemical, structural, and sequence evidence.
+
+\subsection{Structural Repositories: PDB and Predicted Models}\label{sec:data:pdb}
+The PDB MCP tool provides structured access to the Protein Data Bank (PDBe) API \citep{Burley2018}. It can be invoked with one or more PDB identifiers to retrieve detailed entry information. This includes metadata such as the experimental method, resolution, and publication details, as well as molecular information like the list of co-crystallized small molecules (ligands). The tool automatically filters out common solvents and ions to return only ligands relevant for analysis, providing their chemical identifiers (SMILES, InChIKey) and cross-references to databases like ChEMBL (Table \ref{tab:pdb-mcp}). This capability is crucial for large-scale structural analyses, such as identifying all ligand-bound structures for a given protein target, a common starting point in drug discovery projects.
+
+
+\subsection{Multimodal Grounding and Interfaces with Scientists}\label{subsec:viewer}
+
+Understanding proteins requires the navigation of multiple types of information, such as three-dimensional structures, experimental assay tables, and textual annotations. A central goal of \emph{Speak to a Protein} is to connect these diverse modalities through a single conversational interface, ensuring that system responses are not only generated in natural language but are also grounded in concrete evidence such as 3D visualizations, data tables, and executable code. To achieve this, we provide a set of interactive interfaces that extend dialogue into complementary domains: a structural viewer for molecular inspection, a tabular analysis environment for filtering and plotting assay data, and mechanisms for synchronizing actions across views. Together, these interfaces enable users to fluidly transition between asking questions, running analyses, and visually verifying hypotheses. Significantly, we are building these capabilities on top of a web application that has already attracted more than 18,000 registered users over the years, even in the absence of these AI features. These new capabilities enable medicinal chemists with no-code experience to use the tools like an expert computational chemist. We thus anticipate that it will be used by a considerable number of scientists\new{, as demonstrated by the platform usage metrics in Appendix \ref{sec:appendix_usage}}.
+
+
+In \emph{Speak to a Protein}, these functionalities are built using an entirely client-side sandbox for dynamic visualization and manipulation of molecular structures \citep{torrens2023playmolecule}. The sandbox builds on a browser-based molecular visualization toolkit that combines the high-performance \texttt{mol*} visualization engine \citep{Sehnal2021},  capable of rendering large biomolecular structures and molecular dynamics trajectories directly in the browser, with a WebAssembly-enabled Python runtime (Pyodide). This allows the use of powerful Python libraries such as MoleculeKit \citep{Doerr2016} in the client environment, enhancing the viewer's capabilities to load and manipulate a wide range of common structural file formats, from PDB and CIF to molecular dynamics trajectory files such as XTC and TRR. 
+
+
+A key feature is the ability to control this viewer through natural language commands. Requests such as “highlight the ATP-binding site” are translated into tool calls that execute Python code within the viewer, producing visual changes in real time (Fig. \ref{fig:viewer}). Users can request a broad set of actions, such as:
+\begin{itemize}[leftmargin=1em]
+    \item \textbf{Loading structures}: Users can instruct the system to load structures either from public sources or by uploading custom files.
+    \item \textbf{Controlling the visualization}: The AI can create, modify, or remove molecular representations on demand. Structures or any of their subsets can be rendered in diverse styles, such as cartoon, ball-and-stick, spacefill, or surface, and colored according to different properties, such as chain, residue type, secondary structure, or user-defined colors. The selection logic uses the expressive VMD selection language, enabling complex queries like “show only the protein backbone,” “highlight tyrosine residues in chain A,” or “display all residues within 5~\AA{} of the ligand.”
+    \item \textbf{Focusing the viewer}: The camera can be centered or zoomed onto regions of interest, such as active sites, mutated residues, or selected domains.
+    \item \textbf{Performing measurements}: Users can request measurements of distances, angles, or dihedrals between atoms or residues.
+    \item \textbf{Manipulating structures}: The system can modify loaded structures, for example, by filtering out water molecules or other unwanted components, splitting chains, or extracting subsets for closer inspection.
+    \item \textbf{Structural alignment}: Multiple structures can be superimposed based on selected atoms (e.g., C$\alpha$ atoms), allowing direct comparison of conformational states or homologous proteins.    
+
+\end{itemize}
+
+
+
+%\subsection{Tabular Data Analysis: Filtering, Analytics, Plots}
+
+
+\section{Experiments}\label{sec:cases}
+We present a set of illustrative case studies to show the capabilities and versatility of \emph{Speak to a Protein}\new{, as well as a quantitative benchmark to validate its reliability on verifiable tasks.}
+Firstly, we show, using the dopamine D3 receptor (D3R) \citep{chien2010structure} as a test case, the execution of a set of possible questions that showcase the capabilities of the platform. These examples highlight how the system enables users to ask scientific questions, integrate data from multiple sources, and rapidly generate insights through multi-modal interactive analysis. 
+Secondly, we ask a set of interactive questions on cyclin-dependent kinase 2 (CDK2) \citep{Malumbres2009}. Finally, we ask the AI to produce a summary report in LaTeX of all the information gathered. 
+By indexing all information, the system creates a knowledge base. Other users can then interrogate it, knowing what is information model of the protein.
+\new{\subsection{Quantitative Evaluation: Bio-Structural Benchmark}\label{subsec:benchmark}
+We established a benchmark of 23 tasks designed to test capabilities essential for computational chemistry. The dataset spans four categories: (i) \textbf{Structural Geometry} (e.g., calculating RMSD, detecting steric clashes, measuring residue distances); (ii) \textbf{Sequence Retrieval} (e.g., extracting specific chain sequences); (iii) \textbf{Database Cross-Referencing} (e.g., retrieving ChEMBL potencies, identifying co-crystal ligands); and (iv) \textbf{Literature Verification} (e.g., finding specific citations).
+We compared \emph{Speak to a Protein} against the standard \textbf{ChatGPT 5.1 Web (Thinking)}. This serves as a strong baseline as it is equipped with reasoning capabilities, web browsing, and a Python sandbox. However, it lacks the specialized biochemical tools, a persistent virtual file system for cross-referencing API outputs, and the 3D visualization engine integrated into our system. Tasks were scored strictly as correct or incorrect based on ground truth data derived from programmatic calculation and database entries.
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.6\linewidth]{Figures/benchmark_results.png}
+\caption{\textbf{Benchmark Performance.} Accuracy comparison between \emph{Speak to a Protein} and the ChatGPT 5.1 Web (Thinking) on 23 curated bio-structural tasks.}
+\label{fig:benchmark}
+\end{figure}
+As shown in Figure \ref{fig:benchmark}, \emph{Speak to a Protein} achieved an accuracy of \textbf{91\% (21/23)}, significantly outperforming the baseline at \textbf{43\% (10/23)}. ChatGPT 5.1 frequently failed on tasks requiring precise structural geometry or specific bioactivity data. While it represents a powerful general-purpose resource for scientists, it lacks the specialized infrastructure that computational chemists require. Its reliance on web search often resulted in retrieval errors, and without a specialized environment to manipulate and visualize molecular structures, it could not accurately derive geometric properties. In contrast, our system succeeded by executing analysis scripts and querying domain tools, ensuring that answers were derived directly from raw data and grounded in the interactive 3D viewer. The full list of benchmark questions is provided in Appendix \ref{app:benchmark_questions}.}
+
+\subsection{Speaking about the Dopamine D3 receptor (D3R)}
+We use \emph{Speak to a Protein} to address a series of research questions related to D3R,  a G protein-coupled receptor of significant pharmacological interest. 
+In the video trace \url{https://youtu.be/H6ag4JJAM0w}, we show a possible user interaction with our system centered on D3R. The scientist begins by asking about the available structures for this receptor, loading the listed structure 3PBL. Next, the user instructs the system to filter for chain A, and changes the visual representation to focus on the binding pocket. Finally, it requests a list of known inhibitors associated with D3R. All this information is collected and made available to the AI so that knowledge is gathered and contextualized.
+
+Focusing on the last query, we illustrate the workflow of the system (Figure \ref{fig:d3r-table}). Upon the user's request, the AI used several tools in sequence to produce the necessary data. Using these tools, it identified the correct UniProt entry for D3R and used it to query ChEMBL for all relevant bioactivity data. The retrieved assay results were compiled and automatically stored in a CSV file, which was then loaded directly into the viewer for exploration and analysis.
+The resulting table provides an overview of all known D3R inhibitors, along with chemical structures, assay details, potency metrics (such as EC${50},IC{50},K_i$), and references to the corresponding literature. Notable examples include inhibitors with subnanomolar to low nanomolar potencies such as CHEMBL5841759 (K$_i$: 0.012~nM) and CHEMBL5802711 (K$_i$: 0.014~nM). The results also listed several potent reference agonists for context. 
+
+
+\begin{figure}[tb]
+\centering
+\includegraphics[width=1\linewidth]{Figures/d3r-inhibitors.png}
+\caption{
+    \textbf{Retrieval and exploration of potent D3R inhibitors.}
+    Example user query and system workflow for fetching all known D3R inhibitors and their affinities using \emph{Speak to a Protein}. The chat panel shows the AI’s reasoning, including the tools used and the final response. On the left, the interface displays an interactive table of D3R inhibitors, including chemical structures, ChEMBL IDs, assay details, and more, enabling direct exploration and further analysis.}\label{fig:d3r-table}
+\end{figure}
+
+In the video trace \url{https://youtu.be/nER3vC90ylQ}, we show how to investigate the differences between the D3 and D2 receptors. The literature search capability can help rapidly surface and synthesize expert knowledge from primary sources to address detailed structural questions.
+Upon receiving the prompt \emph{"Based on the literature, compare the binding pockets of D3R and D2R and summarize the main structural features that could be exploited for ligand selectivity."}, the system first uses \emph{UniProt Search} to identify the canonical UniProt IDs for the specified proteins, ensuring precise target selection. Then, using \emph{Literature Search}, an embedding-based literature search is performed, retrieving relevant articles and review information from PubMed Central that address the requested topic. 
+
+In this example, the system processed a set of 12 literature passages for D2R and 10 for D3R, selecting at least four distinct, peer-reviewed structural biology studies and related supporting works \citep{Wang2018,Chien2010,Yin2020,Fan2020}. Based on this, the generated answer highlighted that while the orthosteric binding pocket is highly conserved, selectivity can be achieved by targeting differences in the architecture and flexibility of the 'extended binding pocket', as well as in the conformation of extracellular loops. It also described the significance of distinct residues (such as Trp100 and residues in EL1/EL2, positions 1.39 and 7.35) that shape ligand binding modes and selectivity opportunities. 
+The resulting analysis revealed that while D3R and D2R share a conserved binding pocket core, D2R possesses additional flexible and hydrophobic residues that create a deeper, more accommodating pocket. These structural differences, clearly visualized and annotated in the viewer, help explain how each receptor achieves ligand selectivity, providing actionable insights for targeted drug design.
+
+
+
+\subsection{Speaking about the Cyclin-dependent kinase 2 (CDK2)}
+
+We present a complete drug discovery workflow using cyclin-dependent kinase 2 (CDK2), a validated cancer target with extensive structural and bioactivity data \citep{Malumbres2009}. This example showcases how \emph{Speak to a Protein} can streamline the entire process from initial target evaluation to actionable insights.
+Our analysis begins with a systematic exploration of available structural data, progresses through mining and filtering of bioactivity data, and culminates in an integrated structural-activity analysis. The workflow highlights the system's ability to seamlessly transition between different data modalities and analysis types, all through natural language interactions. 
+
+\textbf{Structure-activity.} The complete conversational trace for this analysis is provided in the Appendix \ref{sec:appendix_trace_cdk2}. First, we ask the AI system to retrieve all available CDK2 structures from the Protein Data Bank. The system first used the UniProt tool to identify the canonical human CDK2 entry (P24941) and retrieve all 462 associated PDB structures. It then systematically queried each structure using the PDB information tool, which parsed each entry to extract co-crystallized ligands. After filtering out common solvents and ions, this process identified 479 unique ligand-structure pairs containing small molecules relevant for drug discovery.
+The system then automatically determined bioactivity coverage, revealing that 132 out of 258 ChEMBL-annotated ligands had experimental activity measurements available. Through systematic data cleaning and deduplication focused on IC$_{50}$ values, we generated a refined dataset of approximately 100 unique CDK2-ligand complexes, ranked by potency.
+The top 20 most potent complexes (IC$_{50}$ values ranging from sub-nanomolar to 15 nM) were loaded into the 3D viewer and structurally aligned (Figure \ref{fig:cdk2_analysis}). For detailed binding site analysis, the system identified and visualized only the ATP-binding pocket residues (within 6 \AA{} of the co-crystallized ligands), excluding solvents and common crystallization agents. 
+
+
+\begin{figure*}[!tb]
+\centering
+\begin{subfigure}{0.47\textwidth}
+    \includegraphics[width=\linewidth]{Figures/cdk2_data_integration.png}
+    \caption{}
+\end{subfigure}
+\hfill
+\begin{subfigure}{0.45\textwidth}
+    \includegraphics[width=\linewidth]{Figures/cdk2_structural_analysis.png}
+    \caption{}
+\end{subfigure}
+\caption{CDK2 structure–activity analysis.
+(a) Data integration and bioactivity analysis derived from ChEMBL datasets, demonstrating seamless integration of structural and bioactivity data through natural language queries.
+(b) Structural alignment of the top 20 most potent CDK2-ligand complexes with focused visualization of ATP-binding pockets.}
+\label{fig:cdk2_analysis}
+\end{figure*}
+
+\paragraph{Automated Report Generation.} 
+Furthermore, the AI extracted the binding pocket sequences and stored them in FASTA format. Pairwise sequence alignment revealed high conservation across the ATP-binding site, with only minor variations at peripheral positions. The AI system then conducted a comprehensive literature search to contextualize these findings with existing CDK2 research, automatically generating a markdown summary of relevant studies discussing binding site features and structure-activity relationships.
+The following report was automatically generated by the AI system, synthesizing all gathered data into actionable insights suitable for distribution to medicinal chemistry teams:
+
+\begin{quote}
+\textbf{CDK2 Structure-Activity \& Binding Pocket Analysis}
+
+\textbf{Key Findings}
+
+\emph{Structural Data Scope:} 462 unique CDK2 PDB structures identified and curated. 479 ligand/structure pairs contain co-crystallized non-solvent small molecules suitable for drug discovery.
+
+\emph{Bioactivity Integration:} 258 unique CDK2 co-crystallized ligands mapped to ChEMBL IDs. 132 ligands (~51\%) have direct annotated bioactivity data for CDK2 in public databases. After deduplication, 100 unique, potent (lowest IC$_{50}$) ligand–structure matches represent the focused SAR set. Top 20 complexes span sub-nanomolar to low-nanomolar IC$_{50}$ values.
+
+\emph{Binding Pocket \& Sequence Conservation:} The ATP-binding pocket is highly conserved across CDK2 structures, with the Gly-rich loop and DFG motif strictly maintained. Only minor sequence variations (G→V, Q/N, D/K) were observed at the pocket periphery. Pairwise sequence alignment scores are uniformly high, supporting a rigid, canonical scaffold for ligand engagement. All potent inhibitor binding modes overlay at this conserved pocket, with activity cliffs mostly driven by ligand features rather than pocket sequence variation.
+
+\emph{Structural Alignment \& 3D Analysis:} 14 of the top 20 potent CDK2–inhibitor complex structures were successfully aligned and visualized. Superposition reveals near-identity of main pocket conformation but highlights loop and surface flexibility for ligand-induced fit.
+
+\textbf{Actionable Insights}
+
+CDK2 displays a classic, highly druggable ATP-binding pocket with little sequence-derived risk of resistance. SAR optimization should focus on maximizing hydrophobic and hinge contacts, exploring diversity at the pocket periphery, and leveraging observed loop conformational plasticity for next-gen analogs.
+
+\textbf{Data Files Generated}
+
+\begin{center}
+\scriptsize
+\begin{tabular}{p{0.4\textwidth} p{0.3\textwidth}}
+\toprule
+\textbf{Dataset Description} & \textbf{File} \\
+\midrule
+PDB–ligand associations & \texttt{druglike\_ligands.csv} \\
+Annotated activity data & \texttt{ligands\_annotated.csv} \\
+IC$_{50}$-focused dataset & \texttt{ligands\_IC50\_only.csv} \\
+Deduplicated potency table & \texttt{ligands\_dedup.csv} \\
+Pocket sequences & \texttt{pocket\_sequences.fasta} \\
+Sequence alignments & \texttt{pocket\_alignments.txt} \\
+Literature synthesis & \texttt{literature\_summary.md} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{Conclusion:} CDK2 remains a top-tier drug discovery target with a structurally robust, deeply conserved and well-characterized ATP site optimal for inhibitor design—validated by a wealth of crystal structures and directly observed SAR correlation.
+\end{quote}
+
+The system's ability to generate publication-ready reports and comprehensive literature summaries further enhances its utility in collaborative drug discovery environments, where rapid communication of complex structural and biochemical insights is essential for decision-making.
+
+\section{Conclusion and Limitations}\label{sec:discussion}
+
+This study demonstrates how \emph{Speak to a Protein} compresses traditional workflows involving several hours of manual data gathering, analysis, and synthesis into an interactive session taking less than an hour. The system's ability to generate publication-ready reports further enhances its utility in collaborative drug discovery environments where rapid understanding and communication of complex structural and biochemical insights are essential for decision-making.
+
+We found the following limitations in the current version of \emph{Speak to a Protein}. The open web application accesses only public information, such as literature, structure-activity relationships, and structural data. This limits the data access and the understanding and downstream calculations. We plan to easily extend it with additional tools to access internal or proprietary datasets, further broadening the scope of information that can be queried, integrated.
+ The 3D viewer can experience performance issues when rendering a large number of complex structures simultaneously. We also observe occasional difficulties in seamlessly connecting outputs between tools, stemming from different data representations across the system's components, e.g., residue indices across literature and structural databases. Furthermore, long tool outputs can strain the model's context window. Future work will focus on offloading large data payloads to files and equipping the model with a broader set of tools for file management, allowing for more robust and complex analytical workflows.
+
+\emph{Speak to a Protein} is freely accessible at \url{https://www.anonymousplayground.com}, which guarantees the reproducibility of the results shown. 
+
+\bibliography{refs}
+\bibliographystyle{iclr2026_conference}
+
+
+% APPENDIX
+\clearpage
+\appendix
+
+
+\section{Appendix}
+\subsection{Tables}
+\begin{table}[!htbp]
+\caption{Fields returned by the Protein Literature MCP. Global fields describe the query context; results contain one or more retrieved citations with text passages.}
+\label{tab:literature-mcp}
+\begin{center}
+\begin{tabular}{p{3.7cm}p{10cm}}
+\toprule
+\multicolumn{1}{c}{\bf Field} & \multicolumn{1}{c}{\bf Description / Example Value} \\
+\midrule
+\texttt{fasta\_sequences[]} & One or more FASTA sequences associated with the protein input. \\
+\addlinespace
+\texttt{pdb\_ids[]} & PDB identifiers discovered for the input (via cross-references or sequence search). \emph{Example:} [“1H1R”, “3DDQ”, “7RWE”] \\
+\addlinespace
+\texttt{uniprot\_ids[]} & UniProt accessions associated with the input. \emph{Example:} [“P24941”] \\
+\addlinespace
+\texttt{results[].pmcid} & PubMed Central ID for a retrieved article. \emph{Example:} “PMC5291709” \\
+\addlinespace
+\texttt{results[].doi} & Digital Object Identifier for the article. \emph{Example:} “10.7554/eLife.20818” \\
+\addlinespace
+\texttt{results[].content} & Retrieved text passage from the article body (cleaned paragraphs). \emph{Example:} “ATP-binding sites involve Walker-A and -B motifs and a trigger residue that regulates hydrolysis.” \\
+\addlinespace
+\texttt{error} & Error message if something went wrong; empty/absent otherwise. \emph{Example:} “Failed to load existing RAG database: …” \\
+\bottomrule
+\end{tabular}
+\end{center}
+\end{table}
+
+
+
+
+
+\begin{table}[!htbp]
+\caption{Fields returned by the UniProt MCP. Two panels are shown: the upper panel lists fields from the \textbf{text search} tool (multiple candidate entries for a text query such as “CDK2”); the lower panel lists fields from the \textbf{data lookup} tool (detailed entries for a UniProt accession or PDB identifier).}
+\label{tab:uniprot-mcp-cdk2}
+\begin{center}
+\begin{tabularx}{\textwidth}{p{5.5cm}X}
+\toprule
+\multicolumn{1}{c}{\bf Field (per entry)} & \multicolumn{1}{c}{\bf Description / Example Value} \\
+\midrule
+\multicolumn{2}{l}{\bf Panel A — Text search tool} \\
+\midrule
+\texttt{entries[].entry\_type} & UniProt record type (reviewed/unreviewed). \\
+\addlinespace
+\texttt{entries[].uniprot\_accession} & Primary accession. \emph{Example:} “P24941” (human CDK2). \\
+\addlinespace
+\texttt{entries[].knowledgebase\_id} & Human-readable ID. \emph{Example:} [“CDK2\_HUMAN”, “CDK2\_MOUSE”]. \\
+\addlinespace
+\texttt{entries[].name} & Recommended, short and alternative protein names. \emph{Example:} “Cyclin-dependent kinase 2”, "p33", “Cell division protein kinase 2”. \\
+\addlinespace
+\texttt{entries[].organism} & Common and scientific names. \emph{Example:} “Human — Homo sapiens”. \\
+\addlinespace
+\texttt{entries[].annotation\_score} & Curation score string. \emph{Example:} “5.0 out of 5”. \\
+\addlinespace
+\texttt{entries[].keywords[]} & Keyword strings (category: name). \emph{Example:} [“Ligand: ATP-binding”, “Molecular function: Kinase”] \\
+
+\midrule
+\multicolumn{2}{l}{\bf Panel B — Data lookup tool} \\
+\midrule
+
+\texttt{primaryAccession} & Canonical accession. \emph{Example:} “P24941”. \\
+\addlinespace
+\texttt{uniProtkbId} & Human-readable ID. \emph{Example:} “CDK2\_HUMAN”. \\
+\addlinespace
+\texttt{entryType} & Record type (reviewed/unreviewed). \\
+\addlinespace
+\texttt{organism} & Common and scientific names. \emph{Example:} “Human — Homo sapiens”. \\
+\addlinespace
+\texttt{proteinDescription} & Recommended full name and alternatives. \emph{Example:} “Cyclin-dependent kinase 2”, alt: [“p33 protein kinase”]. \\
+\addlinespace
+\texttt{genes[]} & Gene symbols and synonyms. \emph{Example:} [“CDK2”, “CDKN2”]. \\
+\addlinespace
+\texttt{comments[]} & Curated comment blocks (FUNCTION, SUBUNIT, PTM, ...). \emph{Example:} FUNCTION describes CDK2 roles at G1/S. \\
+\addlinespace
+\texttt{features[]} & Sequence features (“\texttt{type — start:end}”). \emph{Example:} “Active site — 127:127”. \\
+\addlinespace
+\texttt{references[]} & Bibliography (title, first author, date, journal, refs, focus). \\
+\addlinespace
+\texttt{crossref[]} & External cross-refs as “Database:ID”. \emph{Example:} [“PDB:1H1Q”, “DrugBank:DB07755”]. \\
+\addlinespace
+\texttt{keywords[]} & Structured keywords with category and name. \emph{Example:} [“Molecular function: Kinase”]. \\
+\addlinespace
+\texttt{sequence} & Full amino acid sequence. \emph{Example:} “MENF…HRL”. \\
+\addlinespace
+\texttt{annotationScore} & Numerical annotation score. \emph{Example:} 5.0. \\
+\addlinespace
+\texttt{proteinExistence} & Evidence level. \emph{Example:} “1: Evidence at protein level”. \\
+\addlinespace
+\texttt{secondaryAccessions[]} & Secondary accessions, if any. \\
+\addlinespace
+\texttt{entryAudit} & Versioning and dates. \emph{Example:} first public 1992-03-01; last update 2025-06-18. \\
+\addlinespace
+\texttt{extraAttributes} & Derived counts (comment/feature types) and UniParc ID. \\
+\addlinespace
+\texttt{error} & Error message if something went wrong; empty otherwise. \\
+\bottomrule
+\end{tabularx}
+\end{center}
+\end{table}
+
+
+
+\begin{table}[!htbp]
+\caption{Fields returned by the ChEMBL MCP. Global fields describe the assay query context and where results are stored; entries contain per-assay measurements with assay metadata, compound identifiers, and activity values.}
+\label{tab:chembl-mcp}
+\begin{center}
+\begin{tabularx}{\textwidth}{p{6cm}X}
+\toprule
+\multicolumn{1}{c}{\bf Field} & \multicolumn{1}{c}{\bf Description / Example Value} \\
+\midrule
+\texttt{assay\_type} & Type of assay retrieved from ChEMBL. \emph{Example:} “functional”. \\
+\addlinespace
+\texttt{data\_csv\_path} & File path on disk to the cached CSV table of results, available to the LLM in a sandboxed coding environment. \\
+\addlinespace
+\texttt{num\_entries} & Total number of entries returned by the query. \emph{Example:} 927. \\
+\addlinespace
+\texttt{top\_n} & Number of top entries actually included in the response. \emph{Example:} 20. \\
+\addlinespace
+\texttt{entries[].assay\_chembl\_id} & ChEMBL identifier of the assay. \emph{Example:} “CHEMBL663764”. \\
+\addlinespace
+\texttt{entries[].assay\_description} & Description of the assay protocol. \emph{Example:} “Percentage A2780 cells in sub-G1 after 24 hr at 330 nM (IC50)”. \\
+\addlinespace
+\texttt{entries[].assay\_type} & Short assay type code. \emph{Example:} “F”. \\
+\addlinespace
+\texttt{entries[].bao\_label} & BAO (BioAssay Ontology) label describing the assay format. \emph{Example:} “cell-based format”. \\
+\addlinespace
+\texttt{entries[].molecule\_chembl\_id} & ChEMBL identifier of the tested compound. \emph{Example:} “CHEMBL428690”. \\
+\addlinespace
+\texttt{entries[].molecule\_pref\_name} & Preferred molecule name, if available. \emph{Example:} “ALVOCIDIB”. \\
+\addlinespace
+\texttt{entries[].canonical\_smiles} & Canonical SMILES string of the compound. \\
+\addlinespace
+\texttt{entries[].document\_chembl\_id} & Identifier of the source publication in ChEMBL. \emph{Example:} “CHEMBL1135763”. \\
+\addlinespace
+\texttt{entries[].document\_journal} & Journal of publication (if known). \emph{Example:} “J Med Chem”. \\
+\addlinespace
+\texttt{entries[].document\_year} & Year of publication (if known). \emph{Example:} 2002. \\
+\addlinespace
+\texttt{entries[].standard\_relation} & Relation operator for the reported value. \emph{Example:} “=”. \\
+\addlinespace
+\texttt{entries[].standard\_type} & Type of activity measured. \emph{Example:} “Ki”, “Cell cycle”. \\
+\addlinespace
+\texttt{entries[].standard\_units} & Units of measurement. \emph{Example:} “nM”. \\
+\addlinespace
+\texttt{entries[].standard\_value} & Reported numeric value. \emph{Example:} “1.0”, “100.0”. \\
+\bottomrule
+\end{tabularx}
+\end{center}
+\end{table}
+
+\begin{table}[!htbp]
+\caption{Fields returned by the PDB MCP. The tool can fetch information for a single PDB ID or a list of them. For a single ID, it returns a dictionary; for multiple, a list of dictionaries.}
+\label{tab:pdb-mcp}
+\centering
+\begin{tabularx}{\textwidth}{p{5.5cm}X}
+\toprule
+\multicolumn{1}{c}{\bf Field} & \multicolumn{1}{c}{\bf Description / Example Value} \\
+\midrule
+\texttt{pdb\_id} & PDB identifier. \emph{Example:} "1AQ1" \\
+\addlinespace
+\texttt{title} & Title of the PDB entry. \\
+\addlinespace
+\texttt{experimental\_method} & Experimental technique used. \emph{Example:} "X-RAY DIFFRACTION" \\
+\addlinespace
+\texttt{resolution\_angstrom} & Resolution of the structure in angstroms. \emph{Example:} 2.1 \\
+\addlinespace
+\texttt{publication\_year} & Year of the primary publication. \\
+\addlinespace
+\texttt{authors} & List of authors of the publication. \\
+\addlinespace
+\texttt{journal} & Abbreviated journal name. \emph{Example:} "Cell" \\
+\addlinespace
+\texttt{doi} & Digital Object Identifier for the publication. \\
+\addlinespace
+\texttt{deposit\_date} & Date the structure was deposited. \\
+\addlinespace
+\texttt{release\_date} & Date the structure was released. \\
+\addlinespace
+\texttt{small\_molecules[]} & List of dictionaries, one for each co-crystallized small molecule ligand. \\
+\addlinespace
+\texttt{small\_molecules[].het\_id} & Heterogen ID of the ligand. \emph{Example:} "STU" \\
+\addlinespace
+\texttt{small\_molecules[].name} & Name of the ligand. \emph{Example:} "STAUROSPORINE" \\
+\addlinespace
+\texttt{small\_molecules[].smiles} & SMILES string of the ligand. \\
+\addlinespace
+\texttt{small\_molecules[].inchi\_key} & InChIKey of the ligand. \\
+\addlinespace
+\texttt{small\_molecules[].chembl\_id} & ChEMBL ID of the ligand, if available. \emph{Example:} "CHEMBL388673" \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\newpage
+\subsection{Full Conversational Trace for CDK2 Analysis}
+\label{sec:appendix_trace_cdk2}
+
+This section provides the complete, unedited conversational trace between the user and the \emph{Speak to a Protein} system for the CDK2 case study.
+
+\vspace{1em}
+
+\begin{userbox}
+\textbf{User:} I'm starting a new research project focused on CDK2 (Cyclin-dependent kinase 2). Can you retrieve all available PDB structures associated with CDK2?
+\end{userbox}
+
+\begin{assistantbox}
+\textbf{Assistant:} Great! Your goal is to get all available PDB structures for CDK2 (Cyclin-dependent kinase 2). Here’s the high-level plan:
+
+\textbf{Checklist for Retrieving CDK2 PDB Structures}
+\begin{enumerate}
+    \item Identify the correct UniProt accession code for human CDK2.
+    \item Cross-reference this accession with the PDB database to get all associated structures.
+    \item Provide you with the list of PDB IDs (optionally, titles or other metadata).
+\end{enumerate}
+
+Let’s start by finding the UniProt accession for human CDK2.
+\begin{verbatim}
+tool_execution: uniprot_text_search
+tool_execution: uniprot_data_lookup
+tool_execution: head
+tool_execution: head
+\end{verbatim}
+\textbf{Summary of Actions:}
+\begin{itemize}
+    \item Identified the human CDK2 UniProt accession as \texttt{P24941}.
+    \item Retrieved the cross-reference table of all PDB entries linked to this protein.
+    \item Confirmed there are over 460 PDB structures associated with human CDK2.
+    \item The first several PDB IDs include: \texttt{1AQ1}, \texttt{1B38}, \texttt{1B39}, \texttt{1BUH}, \texttt{1CKP}, \texttt{1DI8}, \texttt{1DM2}, \texttt{1E1V}, \texttt{1E1X}, \texttt{1E9H}, \texttt{1F5Q}, \texttt{1FIN}, \texttt{1FQ1}, \texttt{1FVT}, \texttt{1FVV}, \texttt{1G5S}, \texttt{1GIH}, \texttt{1GII}, \texttt{1GIJ}.
+\end{itemize}
+\textbf{What’s Next:} I can provide you with the full CSV containing all CDK2 PDB IDs for your research records, or perform further filtering (e.g., by resolution, ligand-bound states, etc.) if you have specific needs.
+
+Would you like the complete list as a CSV download, or do you wish to explore/filter these structures further?
+\end{assistantbox}
+
+\vspace{1.5em}
+
+\begin{userbox}
+\textbf{User:} Great! Now I need to identify which of these CDK2 structures contain bound small molecules relevant for drug discovery. For each PDB structure with a co-crystallized small molecule ligand, please extract the ligand information, including the SMILES string and ChEMBL ID.
+\end{userbox}
+
+\begin{assistantbox}
+\textbf{Assistant:} Your aim is to filter the ~460 CDK2 structures for those with co-crystallized small-molecule ligands relevant for drug discovery, and to gather key ligand information (SMILES, ChEMBL ID).
+\begin{verbatim}
+tool_execution: run_python
+tool_execution: pdb_info
+tool_execution: run_python
+tool_execution: pdb_info
+tool_execution: head
+tool_execution: run_python
+\end{verbatim}
+All CDK2 PDB structures have been screened for co-crystallized small-molecule ligands, explicitly excluding common solvents and ions. Here’s what was accomplished:
+\begin{itemize}
+    \item A total of 462 CDK2 structures were checked.
+    \item 479 unique ligand/structure pairs were identified that contain relevant small molecules suitable for drug discovery workflows (excluding water, ions, and common crystallization agents).
+    \item For each entry, key information—PDB ID, ligand three-letter code, ligand name, SMILES string, and ChEMBL ID (when available)—has been extracted.
+\end{itemize}
+You can now download the structured CSV file with these results for your research: \texttt{cdk2\_structures\_with\_druglike\_ligands.csv}.
+
+Do you want an overview table here, a full downloadable link, or further sub-filtering (e.g., by ligand/chemotype, ChEMBL presence, etc.)?
+\end{assistantbox}
+
+\vspace{1.5em}
+
+\begin{userbox}
+\textbf{User:} How many of our co-crystallized ligands now have annotated bioactivity data?
+\end{userbox}
+
+\begin{assistantbox}
+\textbf{Assistant:} Your question aims to determine how many of the CDK2 co-crystallized ligands identified (from the previous CSV, each with ChEMBL IDs when available) have associated, annotated bioactivity data.
+
+Here’s the high-level plan:
+
+\textbf{Checklist to Address Ligand Bioactivity Data}
+\begin{enumerate}[label=\arabic*.]
+    \item Extract the list of unique ChEMBL IDs among the co-crystallized ligands.
+    \item Query ChEMBL for bioactivity records for these ChEMBL IDs.
+    \item Count and report how many ligands have at least one bioactivity annotation.
+\end{enumerate}
+
+Let’s start by extracting the unique, non-null ChEMBL ligand IDs from the results file. 
+\begin{verbatim}
+tool_execution: run_python
+tool_execution: chembl_assays
+tool_execution: run_python
+tool_execution: head
+tool_execution: run_python
+\end{verbatim}
+\textbf{Result:} Out of 258 unique CDK2 co-crystallized small-molecule ligands with a ChEMBL ID, 132 have annotated bioactivity data in ChEMBL.
+
+This means just over half of the ChEMBL-annotated ligands seen crystallographically with CDK2 have corresponding experimental activity measurements available—enabling robust structure-activity relationship (SAR) and virtual screening workflows.
+
+If you’d like, I can generate a CSV file listing all ligands with/without bioactivity data, or prioritize by type/affinity ranges—just let me know your next analytic need!
+\end{assistantbox}
+
+\vspace{1.5em}
+
+\begin{userbox}
+\textbf{User:} Excellent! Now let's load this dataframe into the viewer so I can explore and analyze the data interactively.
+\end{userbox}
+
+\begin{assistantbox}
+\textbf{Assistant:} Perfect approach! Here’s how we’ll proceed:
+
+\textbf{Checklist for Data Loading \& Interactive Analysis}
+\begin{enumerate}[label=\arabic*.]
+    \item Prepare the relevant CSV with CDK2 PDB-ligand-activity data for the viewer.
+    \item Load the CSV into the Viewer’s VFS (frontend).
+    \item Enable you to filter, sort, and explore SAR and ligand info interactively from the Viewer’s data table interface.
+\end{enumerate}
+
+I will ensure the full co-crystal ligand dataset is loaded (with PDB ID, ligand name, SMILES, ChEMBL ID, etc.), so you can immediately begin your exploration. The entire CDK2 structure–ligand dataset (including all PDB IDs, ligand names, SMILES, and ChEMBL IDs for co-crystallized druglike compounds) is now loaded into the Viewer. You can interactively filter, sort, and analyze the data directly in the viewer’s table interface to support your structure–activity relationship (SAR) and drug discovery workflows.
+
+If you need to overlay additional columns, merge in the bioactivity values, or automate further analyses, just let me know!
+\begin{verbatim}
+tool_execution: pmview_load_file
+\end{verbatim}
+\end{assistantbox}
+
+\vspace{1.5em}
+
+\begin{userbox}
+\begin{minipage}[c]{0.3\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{Figures/appendix_table_1.png}
+\end{minipage}%
+\hfill%
+\begin{minipage}[c]{0.65\textwidth}
+\textbf{User:} Could you annotate the dataframe with the activity data for each compound?
+\end{minipage}
+\end{userbox}
+
+\begin{assistantbox}
+\textbf{Assistant:} Your goal is now to enrich the current dataframe—listing all CDK2 co-crystal ligands—with their experimental activity data, where available. Here’s the plan:
+
+\textbf{Checklist for Activity Data Annotation}
+\begin{enumerate}[label=\arabic*.]
+    \item For each ligand in the dataframe (by ChEMBL ID), retrieve associated CDK2 bioactivity values from ChEMBL.
+    \item Merge the experimental activity data (e.g., IC\textsubscript{50}, K\textsubscript{i}, units, assay type, etc.) into the original structure–ligand CSV.
+    \item Reload the updated, annotated CSV into the viewer for interactive inspection.
+\end{enumerate}
+
+\textbf{Approach:}
+\begin{itemize}
+    \item I will extract activity records from the CDK2 ChEMBL assay CSV for all ChEMBL-mapped ligands in your PDB file.
+    \item Merge these activity annotations back into the master ligand/PDB dataframe.
+    \item Load the resulting enriched file for interactive SAR analysis.
+\end{itemize}
+
+Let’s proceed with merging the activity data and preparing the annotated file. Your CDK2 co-crystal structure–ligand dataframe is now fully annotated with experimental activity data—including standard type (IC\textsubscript{50}, K\textsubscript{i}, etc.), values, units, assay description, publication, and year—for each compound where available.
+
+The annotated CSV is already loaded and ready for interactive sorting, filtering, and SAR analysis in the viewer.
+
+If you want to visualize, group by, or further analyze any specific fields (e.g., color by IC\textsubscript{50}, filter by activity type), just let me know your next analytic step!
+\begin{verbatim}
+tool_execution: run_python
+tool_execution: pmview_load_file
+\end{verbatim}
+\end{assistantbox}
+
+\vspace{1.5em}
+
+\begin{userbox}
+\begin{minipage}[c]{0.3\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{Figures/appendix_table_1.png}
+\end{minipage}%
+\hfill%
+\begin{minipage}[c]{0.65\textwidth}
+\textbf{User:} The dataset looks comprehensive but has some redundancy. Let's clean it up by removing duplicate entries and focusing specifically on IC\textsubscript{50} values, since these are the most commonly used and comparable activity measurements for structure-activity relationship analysis in drug discovery.
+\end{minipage}
+\end{userbox}
+
+\begin{assistantbox}
+\textbf{Assistant:} Great—focusing on IC\textsubscript{50} values and removing redundancy will streamline your SAR analysis. Here’s the plan:
+
+\textbf{Checklist for Cleaning \& Focusing the Dataset}
+\begin{enumerate}[label=\arabic*.]
+    \item Filter the annotated dataset to retain only rows with \texttt{standard\_type = 'IC50'}.
+    \item Remove duplicate entries (e.g., same PDB–ligand–IC\textsubscript{50}) to keep only unique records.
+    \item Reload the cleaned and focused dataset into the viewer for efficient, interpretable analysis.
+\end{enumerate}
+
+I'll prepare the filtered file and update the viewer. The dataset has now been filtered to include only unique entries with experimentally measured IC\textsubscript{50} values, the gold standard for SAR in drug discovery. Redundant rows have been removed, resulting in a concise dataset (353 unique records) now reloaded and ready for further interactive analysis in the Viewer.
+
+If you want to further cluster by ligand, select only the best (lowest) IC\textsubscript{50} per compound, or need additional summary statistics or visualizations, just let me know!
+\begin{verbatim}
+tool_execution: run_python
+tool_execution: pmview_load_file
+\end{verbatim}
+\end{assistantbox}
+
+\vspace{1.5em}
+
+\begin{userbox}
+\begin{minipage}[c]{0.3\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{Figures/appendix_table_2.png}
+\end{minipage}%
+\hfill%
+\begin{minipage}[c]{0.65\textwidth}
+\textbf{User:} The data still has multiple entries per structure. Let's deduplicate further by keeping only unique PDB and ChEMBL IDs with the lowest IC$_{50}$ value.
+\end{minipage}
+\end{userbox}
+
+\begin{assistantbox}
+\textbf{Assistant:} Excellent refinement! Here’s how we’ll obtain a clean, one-to-one mapping:
+
+\textbf{Checklist for Strict Deduplication}
+\begin{enumerate}[label=\arabic*.]
+    \item For each PDB structure (PDB ID), keep only the ligand/row with the lowest IC\textsubscript{50}.
+    \item For each ChEMBL ligand, keep only the entry with the lowest IC\textsubscript{50} across all PDBs (to ensure only unique ligands remain).
+    \item Ensure the final dataframe contains only unique PDB IDs and unique ChEMBL IDs, each associated with their most potent (lowest) IC\textsubscript{50} measurement.
+    \item Reload the deduplicated dataset for your analysis.
+\end{enumerate}
+
+Let’s process and reload this improved, non-redundant summary. The dataset is now strictly deduplicated—containing only unique PDB IDs and unique ChEMBL ligands, each paired with its most representative (lowest) IC\textsubscript{50} value. This streamlines your SAR analysis by maximizing coverage and minimizing redundancy.
+
+The resulting \textasciitilde 100-entry file is loaded and ready for direct exploration in the Viewer. If you’d like additional summaries, descriptor calculation, or clustering, let me know your next analysis goal!
+\begin{verbatim}
+tool_execution: run_python
+tool_execution: pmview_load_file
+\end{verbatim}
+\end{assistantbox}
+
+\vspace{1.5em}
+
+\begin{userbox}
+\begin{minipage}[c]{0.3\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{Figures/appendix_table_3.png}
+\end{minipage}%
+\hfill%
+\begin{minipage}[c]{0.65\textwidth}
+\textbf{User:} Can you now sort the table by activity?
+\end{minipage}
+\end{userbox}
+
+\begin{assistantbox}
+\textbf{Assistant:} Here’s the plan for your request:
+
+\textbf{Checklist for Table Sorting by Activity}
+\begin{enumerate}[label=\arabic*.]
+    \item Sort the deduplicated dataset by the IC\textsubscript{50} value in ascending order (most potent at the top).
+    \item Reload the sorted file into the Viewer so you can immediately interact with it in this order.
+\end{enumerate}
+
+This will let you quickly identify the most potent (lowest IC\textsubscript{50}) CDK2 co-crystalized ligands directly from the Viewer interface. Proceeding with sorting and reloading now. The table is now sorted by IC\textsubscript{50} (ascending)—the most potent CDK2 binders appear at the top. You can immediately explore these prioritized results in the Viewer to focus your SAR hypotheses and compound design work.
+
+If you want to visualize specific compounds, compare chemical scaffolds, or export subsets for follow-up, just specify your next action!
+\begin{verbatim}
+tool_execution: run_python
+tool_execution: pmview_load_file
+\end{verbatim}
+\end{assistantbox}
+
+\vspace{1.5em}
+
+\begin{userbox}
+\begin{minipage}[c]{0.3\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{Figures/appendix_table_4.png}
+\end{minipage}%
+\hfill%
+\begin{minipage}[c]{0.65\textwidth}
+\textbf{User:} Perfect! Now I want to visualize the top 20 most potent complexes in 3D.
+\end{minipage}
+\end{userbox}
+
+\begin{assistantbox}
+\textbf{Assistant:} Great—your goal is to visualize the top 20 most potent CDK2–ligand complexes (lowest IC\textsubscript{50}) in 3D, loading their PDB structures so you can analyze binding modes and structural determinants of potency.
+
+\textbf{Checklist for Visualization of Top Complexes}
+\begin{enumerate}[label=\arabic*.]
+    \item Extract the top 20 PDB IDs from the sorted SAR dataframe.
+    \item Load each PDB structure into the viewer using the system's molecule-handling class.
+    \item Sequentially render all structures, allowing you to toggle, compare, and inspect binding geometries and features.
+\end{enumerate}
+
+I’ll retrieve the top 20 PDB IDs and then load/visualize them in the Viewer. It appears there was an error when loading some of the top 20 PDB structures—likely due to missing files, unsupported formats, or transient PDB server issues.
+
+Here's what I'll do next to robustly address this:
+\begin{itemize}
+    \item I will re-attempt loading each structure individually, catching and skipping any that fail, ensuring you see as many successful 3D visualizations as possible for SAR analysis.
+\end{itemize}
+
+I’ll proceed with a revised loading script that summarizes any problematic entries and gives you a maximally complete visual set.
+\textbf{Visualization Complete:}
+\begin{itemize}
+    \item 14 out of the top 20 most potent CDK2–ligand complexes were successfully loaded and rendered in 3D for your structural analysis.
+    \item The following PDBs could not be loaded, possibly due to PDB server issues or unsupported formats: \texttt{2WPA}, \texttt{1KE7}, \texttt{5IEV}, \texttt{4FKQ}, \texttt{2VU3}, \texttt{4FKV}.
+\end{itemize}
+
+You can now examine and compare the highest-potency binding modes interactively in the viewer. If you'd like to troubleshoot the unavailable entries or focus on any specific structures, just let me know!
+\begin{verbatim}
+tool_execution: run_python
+tool_execution: pmview_run_python
+tool_execution: pmview_run_python
+\end{verbatim}
+\end{assistantbox}
+
+\vspace{1.5em}
+
+\begin{userbox}
+\begin{minipage}[c]{0.3\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{Figures/appendix_image_1.png}
+\end{minipage}%
+\hfill%
+\begin{minipage}[c]{0.65\textwidth}
+\textbf{User:} I have loaded the remaining structures manually. Now please visualize all loaded structures with structure-index representation and remove the waters.
+\end{minipage}
+\end{userbox}
+
+\begin{assistantbox}
+\textbf{Assistant:} Here’s the step-by-step approach for your request:
+
+\textbf{Checklist:}
+\begin{enumerate}[label=\arabic*.]
+    \item For each loaded structure, switch the protein representation to “structure-index” color (clarifies chain/domain/feature diversity).
+    \item Remove all water molecules from every PDB structure (to declutter the binding pocket visualization).
+    \item Ensure the ligand and relevant cofactors remain for clear analysis.
+\end{enumerate}
+
+Let’s proceed to update all currently loaded structures as requested. All loaded CDK2 structures have been updated as follows:
+\begin{itemize}
+    \item Waters are removed from every complex.
+    \item Proteins are visualized in cartoon representation colored by structure-index, highlighting chain and domain diversity.
+    \item Ligands and cofactors remain, shown as ball-and-stick with element coloring.
+    \item Views are automatically focused on the protein for each structure.
+\end{itemize}
+
+You can now clearly compare potent binding modes and structural features across your top complexes for SAR interpretation. Let me know if you’d like to further highlight specific residues, pocket regions, or overlay ligands!
+\begin{verbatim}
+tool_execution: pmview_run_python
+\end{verbatim}
+\end{assistantbox}
+
+\vspace{1.5em}
+
+\begin{userbox}
+\begin{minipage}[c]{0.3\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{Figures/appendix_image_2.png}
+\end{minipage}%
+\hfill%
+\begin{minipage}[c]{0.65\textwidth}
+\textbf{User:} Now that all structures are loaded, please align them using structural superposition.
+\end{minipage}
+\end{userbox}
+
+\begin{assistantbox}
+\textbf{Assistant:} Absolutely! Structural alignment (superposition) of all loaded CDK2 complexes will allow you to meaningfully compare the binding sites, conformational dynamics, and ligand positioning across your top SAR hits.
+
+\textbf{Checklist for CDK2 Structural Superposition}
+\begin{enumerate}[label=\arabic*.]
+    \item Select a reference CDK2 structure (e.g., the most potent or the first loaded structure).
+    \item Align all other CDK2 protein chains to the reference using structural superposition (typically on C\textalpha{} atoms or the protein backbone).
+    \item Update the visualization so that all complexes share the same spatial frame, facilitating pocket and ligand comparisons.
+\end{enumerate}
+
+I'll proceed by performing the superposition, using the protein backbone for robust alignment. It looks like the superposition function was not successfully imported, which suggests that superposition might either need to be called differently or is located elsewhere in the library's API.
+
+To resolve this, I will search the library's codebase for the correct usage or import path for structural superposition/alignment and then apply the correct method to align all loaded CDK2 complexes. The library provides a built-in method for superposition:
+\begin{itemize}
+    \item Use the \texttt{align} method: \texttt{mol.align(sel, refmol, refsel)}
+    \begin{itemize}
+        \item \texttt{sel}: selection string for atoms to align (e.g., 'protein and backbone' or 'name CA')
+        \item \texttt{refmol}: Molecule to align to (reference)
+        \item \texttt{refsel}: atom selection for reference molecule (should match sel for structure-based alignment)
+    \end{itemize}
+\end{itemize}
+
+Example usage (from documentation):
+\begin{verbatim}
+mol.align('protein', refmol=ref, refsel='protein')
+\end{verbatim}
+This will superpose each molecule (\texttt{mol}) onto the reference (\texttt{ref}) using the selected atoms.
+
+I’ll now perform this alignment for all currently loaded CDK2 structures using backbone atoms for maximal structural comparison. The alignment attempt failed due to differing numbers of backbone atoms between structures, which is common for PDBs with varying constructs, sequence boundaries, or missing residues.
+
+To fix this, I'll use the library's align method with \texttt{mode='structure'}, which performs a structural alignment regardless of atom order or counts, making it robust when sequence/atom mismatches exist.
+
+Let’s proceed with structure-based alignment for the superposition. All CDK2 complexes are now structurally aligned using robust structure-based superposition. This enables direct, meaningful comparison of binding modes, conformational variability, and ligand placement across your top potent co-crystal structures.
+
+You can now examine the aligned ensemble in the viewer for detailed SAR and structure-function insights. Let me know if you’d like to focus on active site residues, overplot specific ligands, or conduct further analyses!
+\begin{verbatim}
+tool_execution: pmview_run_python
+tool_execution: codebase_moleculekit_search
+tool_execution: pmview_run_python
+tool_execution: pmview_run_python
+\end{verbatim}
+\end{assistantbox}
+\vspace{1.5em}
+
+\begin{userbox}
+\begin{minipage}[c]{0.3\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{Figures/appendix_image_3.png}
+\end{minipage}%
+\hfill%
+\begin{minipage}[c]{0.65\textwidth}
+\textbf{User:} Perfect! Now, for each structure, display only the ATP-binding pocket residues (within 6Å of the ligand) and hide the rest of the protein.
+\end{minipage}
+\end{userbox}
+
+\begin{assistantbox}
+\textbf{Assistant:} Here’s how we’ll zoom in on the ATP-binding site for detailed analysis:
+\begin{enumerate}[label=\arabic*.]
+    \item For each aligned CDK2 structure, identify all protein residues within 6~\AA{} of the co-crystallized ligand.
+    \item Update the visualization to display only these ATP-pocket residues (hide all other parts of the protein).
+    \item Keep the co-crystallized ligand(s) visible with ball-and-stick representation.
+\end{enumerate}
+
+This will allow direct, uncluttered comparison of pocket residues and ligand interactions across all aligned complexes for SAR and binding analysis.
+
+Let's execute these selections and update your visualization accordingly. All aligned CDK2 structures are now focused solely on the ATP-binding pocket—showing only those protein residues within 6~\AA{} of their co-crystallized ligand, together with the ligands themselves.
+
+This view enables you to directly compare key pocket residues and their interactions with high-potency ligands across the series, making SAR, hotspot, and mechanism-of-action assessments far more efficient.
+
+Let me know if you’d like to further highlight conserved residues, map mutations, overlay multiple ligands, or export pocket coordinates for computational analysis!
+\begin{verbatim}
+tool_execution: pmview_run_python
+\end{verbatim}
+\end{assistantbox}
+
+\vspace{1.5em}
+
+\begin{userbox}
+\begin{minipage}[c]{0.3\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{Figures/appendix_image_4.png}
+\end{minipage}%
+\hfill%
+\begin{minipage}[c]{0.65\textwidth}
+\textbf{User:} Do not consider solvents or ions like SO4, CH3, SGM, GOL, ACT, ACE as ligands for the pocket selection.
+\end{minipage}
+\end{userbox}
+
+\begin{assistantbox}
+\textbf{Assistant:} Understood! For ATP-pocket residue selection, we’ll strictly exclude all common crystallization agents, solvents, and ions—such as SO4, CH3, SGM, GOL, ACT, ACE, and others you listed. Only true organic/inhibitor ligands will define the selection.
+
+\textbf{Checklist:}
+\begin{enumerate}[label=\arabic*.]
+    \item Exclude all common/solvent/ion three-letter codes from ligand identification.
+    \item For each structure, update the selection so the ATP pocket is defined by protein residues within 6~\AA{} of only the remaining true ligand(s).
+    \item Keep only those pocket residues and the organic ligands visible.
+\end{enumerate}
+
+Let’s refine the selections accordingly and update the viewer. All pocket views have now been refined: Only protein residues within 6~\AA{} of true co-crystallized organic/inhibitor ligands are displayed, strictly excluding all common solvents and ions (e.g., SO4, CH3, SGM, GOL, ACT, ACE, EDO, waters, metals). Ligands themselves remain clearly visible.
+
+You can now directly analyze the critical ATP-binding environments and ligand interactions across all top SAR cases—without any distracting non-relevant species.
+
+Let me know if you’d like to highlight conserved residues, compare ligand orientations, or export pocket coordinates for downstream modeling!
+\begin{verbatim}
+tool_execution: pmview_run_python
+\end{verbatim}
+\end{assistantbox}
+
+\vspace{1.5em}
+
+\begin{userbox}
+\begin{minipage}[c]{0.3\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{Figures/appendix_image_5.png}
+\end{minipage}
+\hfill%
+\begin{minipage}[c]{0.65\textwidth}
+\textbf{User:} Could you extract the amino acid sequences of each of the binding pockets?
+\end{minipage}
+\end{userbox}
+
+\begin{assistantbox}
+\textbf{Assistant:} To extract the amino acid sequences of the ATP-binding pockets for each structure, we need to:
+
+\textbf{Checklist}
+\begin{enumerate}[label=\arabic*.]
+    \item For each structure, identify all protein residues within 6~\AA{} of the (properly filtered) ligand(s).
+    \item Retrieve the unique residue numbers and one-letter codes for these residues.
+    \item Output or save the binding pocket sequences (one per structure), which you can compare, align, or analyze further.
+\end{enumerate}
+
+I will perform these steps and present the results in a tabular form for your review. You can use the library's \texttt{sequence} method, which has a selection argument (\texttt{sel}) to return the one-letter amino acid sequence for a given region, such as the ATP-binding pocket:
+
+Example usage:
+\begin{verbatim}
+pocket_sequence = mol.sequence(oneletter=True, sel=pocket_sel)
+# Returns a dictionary: {segid: sequence}
+\end{verbatim}
+
+I’ll apply this for each structure’s identified pocket and display the resulting one-letter sequences for direct comparison. It appears there was an error when extracting the sequences—likely because, in some structures, the selected ATP pocket region is empty or not protein (e.g., no residues within 6~\AA{}, or the segment definition fails).
+
+To solve this, I’ll adjust the script to handle cases with empty selections gracefully, so we can present the sequences for all successfully detected ATP pockets without failing on missing ones. Here are the ATP-binding pocket amino acid sequences (one-letter code, for residues within 6~\AA{} of the filtered ligand) from each structure:
+\begin{verbatim}
+| PDB ID | Pocket Sequence (one-letter code) |
+|--------|:----------------------------------|
+| 1aq1   | IGEGTGVAKVFEFLHQDKPQNLLADL        |
+| 3ddq   | EKIGEGVKALKVFEFLHQDKQNLLADEK...   |
+| 1oit   | IGEGGVVAKVFEFLHQDLKFQNLAD         |
+| 2w05   | IGEGVAKVFEFLHQDLKFQNLLAD          |
+| 2w17   | IGEVAKVFEFLHQDKKDQNLLAD           |
+| 2vtp   | IEGTGVVALKVFEFLHQDKQNLLADL        |
+| 1r78   | IGEGTVVAKVKFEFLHQDKQNLADF         |
+| 3ns9   | EKIGEGTGVKALKVLFEFLHQDKQNLAD      |
+| 4bgh   | IGEVAKVFEFLHQDLKFQNLLAD           |
+| 2c6o   | IGEGTGVAKVFEFLHQDKFKQNLAD         |
+| 1ke6   | IGGVAKVFEFLHQDKQNLAD              |
+| 6gue   | IGEYVAKEVFEFLHQDKQNLLAD           |
+| 6gue   | IGEGTYVAKEVFEFLHQDLKQNLLAD        |
+| 1ckp   | EIVAKVFEFLHQDKQLAD                |
+| 1g5s   | EIGEGTVKALKVFEFLHQDDKQNLAD        |
+| 2wpa   | IGYVALKEVLFEFLHQDKKQNLADIGYV...   |
+| 1ke7   | IEGTYGVAKVFEFLHQDKFKQNLADL        |
+| 5iev   | EIGEVALKVKFEFLHQDKFQNLLAD         |
+| 2vu3   | IVVALKVFEFLHQDKQNLLAD             |
+\end{verbatim}
+These sequences correspond to the local environment of the ATP site in each structure, capturing subtle sequence or conformation differences.
+Let me know if you want these saved/downloadable, aligned, or mapped onto your structures for further comparative analysis!
+\begin{verbatim}
+tool_execution: pmview_run_python
+tool_execution: codebase_moleculekit_search
+tool_execution: pmview_run_python
+tool_execution: pmview_run_python
+\end{verbatim}
+\end{assistantbox}
+
+\vspace{1.5em}
+
+\begin{userbox}
+\textbf{User:} Thanks! Could you write them into a FASTA file?
+\end{userbox}
+
+\begin{assistantbox}
+\textbf{Assistant:} The ATP-binding pocket amino acid sequences for your CDK2 structures have been written into a single FASTA file:
+
+\texttt{cdk2\_pocket\_sequences.fasta}
+
+You can now download or use this file for sequence comparison, clustering, motif analysis, or further bioinformatics workflows. Let me know if you need a multiple sequence alignment or conservation analysis!
+\begin{verbatim}
+tool_execution: run_python
+\end{verbatim}
+\end{assistantbox}
+
+\vspace{1.5em}
+
+\begin{userbox}
+\textbf{User:} Now please analyze the conservation patterns and sequence variations in these binding pocket sequences.
+\end{userbox}
+
+\begin{assistantbox}
+\textbf{Assistant:} Let’s synthesize the insights from your ATP-pocket sequences and structural ensemble:
+
+\textbf{High-Level Analysis Plan}
+\begin{enumerate}[label=\arabic*.]
+    \item Examine sequence conservation and variation across the ATP-binding pockets.
+    \item Relate observed patterns to ligand binding modes and measured activities.
+    \item Highlight any meaningful residue changes (substitutions, insertions, or deletions) and their possible structural/functional impacts on ligand binding.
+\end{enumerate}
+
+\textbf{1. Conservation Patterns}
+
+Looking at your ATP-pocket FASTA sequences, there’s strong conservation across the binding site—the core motif \texttt{IGEGTGV(A/G)KVFEFLHQ(D/K)(K/Q)QNLLAD(L/F)}—reflecting the critical, evolutionarily fixed nature of the ATP site in CDK2.
+
+Most of the sequence changes are conservative (G$\rightarrow$V, D$\rightarrow$K, Q$\rightarrow$N, etc.), clustered at the periphery, and rarely directly at residues known to contact ligands or substrate.
+
+\textbf{2. Key Sequence Variation Observations}
+\begin{itemize}
+    \item A few sites (notably G$\rightarrow$V, D/K/Q exchanges) appear as minor variations across structures, with some longer sequences showing apparent repetition or possible unresolved loop insertions (e.g., in 3ddq or 2wpa).
+    \item The strong conservation of the “VFEFLHQD” region highlights its central role in ATP or inhibitor recognition; this is further supported by its near invariance in all structures.
+\end{itemize}
+
+\textbf{3. Correlation with Binding Modes/Activities}
+\begin{itemize}
+    \item Because most potent ligands (lowest IC\textsubscript{50}) are co-crystallized with structures with identical or nearly identical pocket sequences, it reinforces that activity cliffs are driven more by ligand features and conformational fit than sidechain mutations in these structures.
+    \item Where variations exist at or near the pocket (e.g., E$\rightarrow$Q or G$\rightarrow$V), these changes may:
+    \begin{itemize}
+        \item Alter the shape or polarity/hydrophobicity of the local environment
+        \item Induce repositioning of main/sidechains affecting direct or water-bridged hydrogen bonds, key for some ligand classes
+        \item Potentially shift flexibility/"breathability" of the pocket size—favoring larger or more conformationally dynamic ligands
+    \end{itemize}
+\end{itemize}
+If a specific structure’s ligand shows a marked difference in binding orientation (e.g., unique rotations, hydrogen bonding, or stacking), and that structure’s sequence has a rare variant in the pocket, this is a plausible hypothesis for the divergence in SAR.
+
+\textbf{4. Implications for Drug Design}
+\begin{itemize}
+    \item The deep conservation means CDK2 actives will likely recognize the same pocket features—the real SAR differentiation will be tied to microenvironments, local water networks, and dynamic sidechains.
+    \item Subtle variations (Q/N, D/K) could lead to favorable/unfavorable interactions for designed inhibitors, especially those with polar moieties.
+    \item For any observed outlier in binding mode or IC\textsubscript{50}, check if it coincides with an unusual local sequence change—it may be actionable for the next round of analog design.
+\end{itemize}
+
+\textbf{Next Steps:}
+\begin{itemize}
+    \item I can generate a pairwise alignment or conservation plot for visual mapping.
+    \item If you’d like, I can map the sequence variations back onto your 3D structures for spatial correlation with ligand pose differences.
+\end{itemize}
+
+Let me know your analytical or visualization preference for the next step!
+\end{assistantbox}
+
+\vspace{1.5em}
+
+\begin{userbox}
+\textbf{User:} Generate a pairwise alignment.
+\end{userbox}
+
+\begin{assistantbox}
+\textbf{Assistant:} A comprehensive pairwise alignment of all CDK2 ATP-pocket sequences has been generated. Here’s what you can do next:
+\begin{itemize}
+    \item You can view the full file (all alignments, scores, and residue matches):\\
+    \texttt{cdk2\_pocket\_pairwise\_alignments.txt}
+    \item The alignments quantify pairwise similarity (alignment scores) and precisely map where insertions, deletions, or substitutions occur between each pocket.
+\end{itemize}
+
+\textbf{Key Observations}
+\begin{itemize}
+    \item The core ATP-binding motif is highly conserved across nearly all your potent SAR structures.
+    \item Most pairwise similarity scores are high, with only rare single-residue or small motif deviations.
+    \item Insertions and rare longer repeats (e.g., in 3ddq, 2wpa) may reflect flexible loops or alternate segmentations, possibly influencing local conformational plasticity or ligand accommodation in outlier cases.
+\end{itemize}
+
+\textbf{Practical Next Steps}
+\begin{itemize}
+    \item Download and review the full alignment to correlate specific sequence changes with structural or activity outliers.
+    \item Highlight in the viewer any pocket residues that vary in the pairwise alignments, for structure-guided design insights.
+\end{itemize}
+
+If you'd like assistance visualizing the conservation or highlighting variable residues directly on your aligned 3D ensembles, I can guide you through that next!
+\begin{verbatim}
+tool_execution: run_python
+\end{verbatim}
+\end{assistantbox}
+
+\vspace{1.5em}
+
+\begin{userbox}
+\textbf{User:} Based on our structural and sequence analysis findings, particularly the conservation patterns we identified and the sequence variations in the ATP-binding pocket, please search the literature for CDK2 to find relevant studies that discuss these binding site features, structure-activity relationships, and any reported effects of pocket variations on inhibitor binding. This will help contextualize our findings with existing knowledge.
+Write this into a .md file
+\end{userbox}
+\vspace{1.5em}
+
+\begin{assistantbox}
+\textbf{Assistant:}
+\begin{verbatim}
+tool_execution: query_protein_literature
+\end{verbatim}
+
+\begin{verbatim}
+tool_execution: write_file
+\end{verbatim}
+Your literature synthesis has been compiled into a markdown file: \texttt{cdk2\_pocket\_literature\_summary.md}.
+\end{assistantbox}
+
+\vspace{1.5em}
+
+\begin{userbox}
+\textbf{User:} Based on our analysis, please generate a concise summary report for the head of chemistry.
+\end{userbox}
+
+\begin{assistantbox}
+\textbf{Assistant:}
+\begin{verbatim}
+tool_execution: write_file
+\end{verbatim}
+A concise executive summary for the head of chemistry has been prepared. You can download the report here: \texttt{CDK2\_analysis\_summary.md}.
+\end{assistantbox}
+
+\clearpage
+\subsection{\new{Usage Metrics}} \label{sec:appendix_usage}
+
+\new{To demonstrate the practical utility and robustness of the system, we analyzed usage statistics from the public deployment of \emph{Speak to a Protein} between May 2025 and November 2025. These metrics reflect organic adoption by the scientific community. As shown in Figure~\ref{fig:usage_metrics}, the platform has seen consistent growth in its user base.  Simultaneously, the volume of interaction has accelerated. Figure~\ref{fig:usage_questions} displays the number of questions processed per week, which remained steady at approximately 100 queries/week during the initial months and surged to over 700 queries/week by November.}
+
+\begin{figure}[htbp]
+    \centering
+    \begin{subfigure}[b]{0.8\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{Figures/pmai-engagement.png}
+        \caption{\new{Aggregated number of unique users engaging with the AI Chat (May–Nov 2025).}}
+        \label{fig:usage_users}
+    \end{subfigure}
+    
+    \vspace{1em} % Adds space between the two plots
+    
+    \begin{subfigure}[b]{0.8\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{Figures/pmai-questions-per-week.png}
+        \caption{\new{Weekly volume of natural language queries received by the system.}}
+        \label{fig:usage_questions}
+    \end{subfigure}
+    
+    \caption{\new{\textbf{Platform Usage Statistics.} Usage metrics from the public release of \emph{Speak to a Protein}, demonstrating steady user adoption and a significant increase in query volume over the last six months.}}
+    \label{fig:usage_metrics}
+\end{figure}
+
+\clearpage
+\new{\subsection{Bio-Structural Benchmark Questions}\label{app:benchmark_questions}}
+
+\new{We provide the full list of 23 questions used in the quantitative benchmark (Section \ref{subsec:benchmark}). Results are categorized as \textbf{Correct} or \textbf{Incorrect} (including incomplete or partially wrong answers). Tasks 1--12 focus on structural queries and database retrieval, while tasks 13--23 include complex analysis, calculation, and literature synthesis.}
+
+\begin{table}[h]
+\newtable
+\caption{\new{Benchmark Tasks 1--12. Comparison of success rates on structural geometry and identification.}}
+\centering
+\small
+\begin{tabularx}{\textwidth}{p{0.5cm} X c c}
+\toprule
+\textbf{ID} & \textbf{Question} & \textbf{Speak To A Protein} & \textbf{ChatGPT 5.1 Web (Thinking)} \\
+\midrule
+1 & For PDB 3L9H (Kinesin Spindle Protein), using the bound ligand EMQ as the reference, which protein residues have at least one atom within 6.0 \AA{} of any EMQ atom? Return the residue list. & Correct & Incorrect \\ \addlinespace
+2 & For PDB 1AQ1 (CDK2), using the bound inhibitor STU as the reference, which protein residues have at least one atom within 6.0 \AA{} of STU? Return the residue list. & Correct & Incorrect \\ \addlinespace
+3 & In PDB 1LYZ (lysozyme), what is the shortest O$\cdot\cdot\cdot$O distance (\AA{}) between any side-chain carboxylate oxygen of Glu35 and any side-chain carboxylate oxygen of Asp52? & Correct & Incorrect \\ \addlinespace
+4 & Using HIV-1 protease structures 1HHP (apo) and 1HVR (ligand-bound), align the proteins (backbone-based). After superposition, do any heavy atoms of the 1HVR ligand come within 2.0 \AA{} of any heavy atom of flap residues 46–56 of 1HHP (i.e., a clash)? & Correct & Correct \\ \addlinespace
+5 & For human CDK2, which residue must be phosphorylated for full kinase activation? Answer with residue name and number. & Correct & Correct \\ \addlinespace
+6 & What is the primary ABL1 gatekeeper mutation associated with resistance to ATP-competitive inhibitors, and what is the corresponding residue name/number in PDB 2HYY? & Correct & Correct \\ \addlinespace
+7 & What is the full amino acid sequence of chain A in PDB 1AQ1 (CDK2)? Return it in FASTA-style (header + sequence). & Correct & Correct \\ \addlinespace
+8 & In PDB 1AQ1 (CDK2) with ligand STU, what is the shortest heavy-atom distance (\AA{}) between any protein atom and any ligand atom? & Correct & Incorrect \\ \addlinespace
+9 & For human EGFR, list compounds with IC$_{50} < 10$ nM. Provide at least 10 examples with: ChEMBL ID, name, IC$_{50}$ (nM), and SMILES. & Correct & Incorrect \\ \addlinespace
+10 & Identify the 5 most potent human EGFR inhibitors by IC$_{50}$ (lowest, normalized to nM). Report if there is a PDB co-crystal structure of EGFR bound to that inhibitor, and list PDB IDs. & Correct & Incorrect \\ \addlinespace
+11 & Find a PDB structure of influenza neuraminidase bound to oseltamivir (Tamiflu). What are the PDB ID and the reported resolution (\AA{})? & Correct & Incorrect \\ \addlinespace
+12 & Identify a human dopamine D3 receptor (DRD3) co-crystal structure in the PDB. Report the PDB ID and the bound non-solvent small-molecule ligand. & Correct & Correct \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{table}[h]
+\newtable
+\caption{\new{Benchmark Tasks 13--23. Comparison on complex analysis, calculation, and literature synthesis.}}
+\centering
+\small
+\begin{tabularx}{\textwidth}{p{0.5cm} X c c}
+\toprule
+\textbf{ID} & \textbf{Question} & \textbf{Speak To A Protein} & \textbf{ChatGPT 5.1 Web (Thinking)} \\
+\midrule
+13 & From ChEMBL bioactivity data for human DRD3, retrieve $K_i$ measurements (nM). Provide a table of at least 20 entries with metadata (IDs, SMILES, assay/doc references). & Correct & Incorrect \\ \addlinespace
+14 & Using CDK2 inhibitor complexes PDB 1AQ1 and 1H1Q, align 1H1Q onto 1AQ1 using protein C$\alpha$ atoms. What is the RMSD (\AA{}) over the aligned C$\alpha$ atoms? & Correct & Incorrect \\ \addlinespace
+15 & In PDB 1AQ1, list all non-protein hetero groups. Indicate which are solvents/ions vs. true ligand(s), and justify. & Correct & Correct \\ \addlinespace
+16 & In PDB 3NY8, considering ligand CAU, list residues forming H-bonds, salt bridges, and hydrophobic contacts ($\le 4.0$ \AA{}). Report the count for each category. & Correct & Incorrect \\ \addlinespace
+17 & How many distinct PDB structures are available for human CDK2 in the Protein Data Bank? Provide the count and description. & Correct & Correct \\ \addlinespace
+18 & From ChEMBL, identify the 5 most potent CDK2 inhibitors by IC$_{50}$ (normalized to nM). Report values and compute their mean (nM). & Correct & Incorrect \\ \addlinespace
+19 & For PDB 2HYY (ABL1), identify the bound non-solvent ligand(s). List protein residues within 6.0 \AA{} (chain, name, number). & Correct & Incorrect \\ \addlinespace
+20 & For the ligand in PDB 1HVR, compute RDKit-style descriptors: MW, cLogP, HBD, HBA, and TPSA. & Incorrect & Correct \\ \addlinespace
+21 & Compare the binding-pocket size in PDB 3L9H (ligand EMQ) vs CDK2 PDB 1AQ1 (ligand STU). Which is larger and what quantitative proxy was used? & Incorrect & Incorrect \\ \addlinespace
+22 & From structural literature on CDK2, which hinge-region residues are most commonly reported to form key H-bonds with inhibitors? & Correct & Correct \\ \addlinespace
+23 & From structural literature comparing D3R and D2R, what binding-site features are reported to enable selective ligand design? Summarize and cite. & Correct & Correct \\
+\bottomrule
+\end{tabularx}
+\end{table}
+\end{document}
