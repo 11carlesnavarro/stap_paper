@@ -172,17 +172,17 @@ CLADD              & Yes & Yes & No  & No  & No  \\
 
 \subsection{Architecture}
 
-The system architecture of \emph{Speak to a Protein} (\cref{fig:architecture}) is organized around four components: a frontend for user interaction and visualization, an agent harness that runs the agent loop and exposes tools to the language model, a search service that maintains semantic indices over codebases, documentation, and literature, and a sandboxed filesystem where code executes against a scientific Python runtime.
+The system architecture of \emph{Speak to a Protein} (\cref{fig:architecture}) is organized around four components: a frontend with a chat panel and a 3D viewer where the user and the agent inspect and manipulate structures for 3D reasoning, an agent harness that runs the agent loop and exposes tools to the language model, a search service that maintains semantic indices over codebases, documentation, and literature, and a sandboxed filesystem in which the agent runs code against a preinstalled scientific software stack.
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=\textwidth]{Figures/architecture.png}
-\caption{\textbf{Overview of the system architecture.} The Frontend hosts a chat, a 3D molecular viewer, and an in-browser IPython console. The Agent Harness runs the agent loop, holds conversation memory, and calls tools. A search service indexes codebases, documentation, and literature. A sandboxed filesystem provides a per-project workspace and a scientific Python runtime, with restricted network egress.}\label{fig:architecture}
+\caption{\textbf{Overview of the system architecture.} The Frontend hosts a chat panel, a 3D molecular viewer, and an IPython console. The Agent Harness runs the agent loop, holds conversation memory, and executes tool calls. A search service indexes codebases, documentation, and literature. A sandboxed filesystem provides a per-project workspace and a preinstalled scientific software stack, with restricted network egress.}\label{fig:architecture}
 \end{figure}
 
-The frontend incorporates a conversational chat panel and a 3D molecular viewer (\cref{fig:viewer} and \cref{subsec:viewer}). Alongside these, an in-browser IPython console powered by Pyodide allows users to inspect or extend any analysis directly in the browser, with no installation. The frontend renders the agent's responses, displaying text in chat and applying viewer commands as the agent issues them.
+The frontend hosts the chat panel, the 3D molecular viewer (\cref{fig:viewer} and \cref{subsec:viewer}), and a Pyodide-based IPython console for client-side analysis. The user converses through the chat panel; the frontend renders the agent's text replies and applies viewer commands as the agent issues them.
 
-The agent harness runs an agent loop that interleaves model reasoning with tool calls and maintains a per-session conversational memory, allowing the assistant to plan multi-step workflows and revisit earlier results. The underlying language model can run via an external API or as a self-hosted local model, with the choice made at configuration time. The harness exposes a small, general-purpose tool set:
+At each user request, the agent harness drives an agent loop: the model emits tool calls, the harness dispatches them, and their outputs are fed back into the next model invocation, continuing until the task is complete. To handle long sessions, the memory module autocompacts older turns into a working memory: a compact, adaptive summary that the agent itself rewrites at each compaction and that is reinjected into context on subsequent turns.
 \begin{itemize}[leftmargin=1em]
 \item \textbf{Viewer Tools:} Issue commands to the 3D viewer to load structures, define selections, and produce visual manipulations.
 \item \textbf{Code Execution:} Run bash and Python commands inside the sandboxed filesystem.
