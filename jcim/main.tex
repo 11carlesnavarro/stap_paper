@@ -1,0 +1,355 @@
+\documentclass[journal=jcisd8,manuscript=article]{achemso}
+\SectionNumbersOn
+
+\usepackage{microtype}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{subcaption}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{mathtools}
+\usepackage{amsthm}
+\usepackage{url}
+\usepackage{enumitem}
+\usepackage{tabularx}
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{caption}
+\usepackage{verbatim}
+\usepackage{hyperref}
+\usepackage{xr}
+\usepackage[capitalize,noabbrev]{cleveref}
+
+\newif\ifrevision
+\revisiontrue
+\providecommand{\textalpha}{\ensuremath{\alpha}}
+
+\ifrevision
+  \newcommand{\new}[1]{\textcolor{blue}{#1}}
+  \newcommand{\newtable}{\color{blue}}
+\else
+  \newcommand{\new}[1]{#1}
+  \newcommand{\newtable}{}
+\fi
+
+\newtcolorbox{userbox}{
+  colback=blue!5!white,
+  colframe=blue!20!white,
+  boxsep=5pt,
+  arc=4mm,
+  left=10pt,
+  right=10pt,
+  top=10pt,
+  bottom=10pt,
+  breakable,
+}
+
+\newtcolorbox{assistantbox}{
+  colback=black!5!white,
+  colframe=black!20!white,
+  boxsep=5pt,
+  arc=4mm,
+  left=10pt,
+  right=10pt,
+  top=10pt,
+  bottom=10pt,
+  breakable,
+}
+\externaldocument{.build/supporting_information}
+
+\author{Carles Navarro}
+\email{c.navarro@acellera.com}
+\affiliation[Acellera Labs]{Acellera Labs, C/ Doctor Trueta 183, 08005 Barcelona, Spain}
+\alsoaffiliation[Universitat Pompeu Fabra]{Computational Science Laboratory, Universitat Pompeu Fabra, PRBB, C/ Doctor Aiguader 88, 08003 Barcelona, Spain}
+
+\author{Mariona Torrens}
+\affiliation[Acellera Labs]{Acellera Labs, C/ Doctor Trueta 183, 08005 Barcelona, Spain}
+
+\author{Philipp Tholke}
+\affiliation[Acellera Labs]{Acellera Labs, C/ Doctor Trueta 183, 08005 Barcelona, Spain}
+
+\author{Stefan Doerr}
+\affiliation[Acellera Labs]{Acellera Labs, C/ Doctor Trueta 183, 08005 Barcelona, Spain}
+
+\author{Gianni de Fabritiis}
+\email{g.defabritiis@acellera.com}
+\affiliation[Acellera Labs]{Acellera Labs, C/ Doctor Trueta 183, 08005 Barcelona, Spain}
+\alsoaffiliation[Universitat Pompeu Fabra]{Computational Science Laboratory, Universitat Pompeu Fabra, PRBB, C/ Doctor Aiguader 88, 08003 Barcelona, Spain}
+\alsoaffiliation[ICREA]{Instituci\'{o} Catalana de Recerca i Estudis Avan\c{c}ats (ICREA), Passeig Llu\'{i}s Companys 23, 08010 Barcelona, Spain}
+
+\title[Speak to a Protein: An Interactive Multimodal Co-Scientist]{Speak to a Protein: An Interactive Multimodal Co-Scientist for Protein Analysis}
+\keywords{Agentic co-scientist, scientific discovery, molecular visualization, deep research, drug discovery, retrieval-augmented generation}
+
+\begin{document}
+
+\begin{abstract}
+Building a working mental model of a protein typically requires weeks of reading, cross-referencing crystal and predicted structures, and inspecting ligand complexes, an effort that is slow, unevenly accessible, and often requires specialized computational skills. We introduce \emph{Speak to a Protein}, a new capability that turns protein analysis into an interactive, multimodal dialogue with an expert co-scientist. The AI system retrieves and synthesizes relevant literature, structures, and ligand data; grounds answers in a live 3D scene; and can highlight, annotate, manipulate and see the visualization. It also generates and runs code when needed, explaining results in both text and graphics.
+We demonstrate these capabilities on relevant proteins, posing questions about binding pockets, conformational changes, or structure-activity relationships to test ideas in real-time. \emph{Speak to a Protein} reduces the time from question to evidence, lowers the barrier to advanced structural analysis, and enables hypothesis generation by tightly coupling language, code, and 3D structures. 
+Speak to a Protein is freely accessible at \url{(URL to be disclosed after publication)}.
+
+\end{abstract}
+
+\section{Introduction}\label{sec:intro}
+Proteins are the molecular machinery of life, and understanding their structure and function is fundamental to modern biology and medicine. For a researcher in drug discovery or molecular biology, developing an intuitive, "working mental model" of a target protein, its active sites, its conformational dynamics, and its network of interactions is a critical first step. However, this process is slow and arduous, often requiring a combination of deep domain knowledge and specialized computational skills.
+
+A researcher investigating a protein kinase to understand how a new series of inhibitors might bind must embark on a fragmented and technically demanding workflow. This involves sifting through the PubMed literature~\citep{Sayers2020}, fetching and comparing multiple structures from the Protein Data Bank (PDB)~\citep{Burley2018}, querying UniProt~\citep{UniProt2022}  for functional annotations and disease-associated variants, and extracting structure-activity relationship (SAR) data from databases like ChEMBL~\citep{Mendez2018}. Each step requires navigating different interfaces and data formats. Furthermore, deeper analysis, such as superimposing structures, identifying key interactions, or plotting bioactivity data, requires proficiency with specialized software or scripting languages, creating a significant barrier to entry for many bench scientists. This high friction for asking and answering questions restrains curiosity and slows the pace of discovery.
+
+To address these challenges, we introduce \emph{Speak to a Protein}, a new capability designed to transform protein analysis into an interactive dialogue with an AI co-scientist that collaborates with the user in real-time. Using recent advances in large language models (LLMs) and their evolution into multimodal scientific agents \citep{Caffagni2024, Zhang2024, Zheng2025}, our system can comprehend complex, natural language queries about a protein of interest. It autonomously retrieves, integrates, and synthesizes information from a comprehensive suite of biological data sources, including literature, structural repositories, and biochemical databases.
+
+The core innovation of \emph{Speak to a Protein} is its ability to ground its responses across multiple, synchronized modalities. When a user asks a question, the AI does not simply return text. It interacts with a live 3D structural viewer to highlight residues, measure distances, or annotate binding pockets. It can generate and execute code in a sandboxed environment to perform calculations, filter tabular data, or generate plots on the fly. Furthermore, the AI co-scientist sees, understands and controls the visualization, offering a natural interaction with the user. This tight coupling of natural language, 3D visualization, and code execution creates a seamless and intuitive environment for scientific exploration.
+
+This paper makes the following contributions: We present the design and architecture of an AI system that integrates language, code execution, and 3D visualization for interactive protein analysis. We show how this multimodal approach drastically lowers the barrier to complex structural and biochemical data analysis. Through case studies on relevant proteins and benchmarks, we show that this system enables a more fluid and powerful form of hypothesis generation, accelerating the cycle from question to evidence.
+
+\section{Related Work}\label{sec:related}
+%AI Scientist
+The ambition to create an AI capable of scientific discovery is a long-standing goal, articulated in visions such as Hiroaki Kitano's proposal for an "AI Scientist": a system that could autonomously formulate hypotheses, design experiments, and achieve Nobel-class discoveries \citep{kitano2021}. While such a fully autonomous system \citep{boiko2023autonomous, zou2025agente} remains a grand challenge, recent progress in large language models (LLMs) has enabled the development of a more immediate and collaborative paradigm: the "AI co-scientist" or "advanced intelligence" in Kitano's words.
+
+%\subsection{Conversational and Multimodal Protein Assistants}
+Early systems explored conversational interfaces for structural inspection and Q\&A over proteins. \citet{guo2023proteinchat} demonstrated \emph{ProteinChat}, which couples LLM prompting with protein 3D structures to answer user questions about residues and pockets. Contemporary efforts such as \citet{wang2024protchatgpt} and \citet{xiao2024proteingpt} investigate protein-aware prompting and multimodal conditioning for function/property reasoning. Most recently, \citet{wang2025prot2chat} proposes \emph{Prot2Chat}, an LLM that fuses protein sequence, structure, and text via an early-fusion adapter, directly targeting protein Q\&A.
+
+%\subsection{Structure-Aware Tools and Visualization Copilots}
+Beyond text-only chat, domain copilots increasingly drive molecular viewers and modeling tools. \citet{sun2024chatmol} introduce \emph{ChatMol Copilot}, an LLM agent that coordinates cheminformatics and modeling tools (e.g., docking, conformer generation) in response to natural-language requests. In parallel, \citet{ille2024gpt4structural} systematically evaluates GPT-4's ability to perform rudimentary structural modeling and protein–ligand interaction analysis, highlighting both promise and limitations. Our work is aligned with this line but centers on tightly coupling language, code execution, and a live 3D scene for grounded, interactive answers.
+
+%\subsection{Agentic LLMs for Chemistry and Drug Discovery}
+Agent frameworks augment LLMs with tool use, retrieval, and planning. \emph{ChemCrow} \citep{bran2024chemcrow} shows that equipping GPT-4 with chemistry tools enables multi-step synthesis planning and materials tasks. More recently, CLADD \citep{lee2025cladd} proposes a retrieval-augmented multi-agent system specialized for drug discovery tasks. \emph{Speak to a Protein} adopts the agentic paradigm for structural biology: it retrieves literature/structures, executes analyses (e.g., pocket mapping, SAR tables), and grounds responses in synchronized 3D visualizations.
+
+%\subsection{Protein–Text Alignment and Cross-Modal LLMs}
+%A complementary thread aligns protein representations with natural language. \citet{wu2024proteinclip} aligns protein LMs with text via contrastive learning; \citet{wang2024instructprotein} uses knowledge-graph–derived instructions to align human and protein "languages." \emph{ProtST} \citep{xu2023protst} improves sequence models using biomedical text, enabling zero-shot retrieval/classification. \emph{ProtLLM} \citep{zhuo2024protllm} interleaves protein tokens with text via a "protein-as-word" objective, while \emph{LLaPA} \citep{zhou2025llapa} integrates protein encoders and PPI networks into an instruction-following LLM. Our system draws on these ideas to support bidirectional grounding: language queries that reference sequence/structure context, and code/visual actions that reflect the language plan.
+
+Compared to prior work, our contribution is an end-to-end, \emph{interactive} co-scientist for proteins that (i) unifies literature/structure/ligand retrieval, (ii) reasons with tabular and 3D modalities, (iii) executes code for analyses, and (iv) directly annotates/manipulates the 3D scene in response to dialogue (\cref{tab:system_comparison}). This tightly coupled language–code–3D loop reduces the time from question to evidence relative to agent-only or text-only systems.
+
+\begin{table}[H]
+\centering
+\caption{Comparison of Speak to a Protein with representative LLM-based systems developed for drug
+discovery, as well as with general-purpose AI models. Speak to a Protein uniquely combines access to multiple biological databases, scientific literature extraction, on-the-fly code execution, real-time 3D molecular
+reasoning, and persistent knowledge management.
+These capabilities are not collectively available in other existing platforms}
+\label{tab:system_comparison}
+% Reduce font size to fit 7 columns in one column
+\scriptsize
+% Reduce horizontal padding between columns (default is usually 6pt)
+\setlength{\tabcolsep}{3pt}
+
+\begin{tabularx}{\textwidth}{
+    >{\raggedright\arraybackslash}p{2.6cm} % Fixed width for the 'System' column to ensure names fit
+    >{\centering\arraybackslash}X
+    >{\centering\arraybackslash}X
+    >{\centering\arraybackslash}X
+    >{\centering\arraybackslash}X
+    >{\centering\arraybackslash}X
+    >{\centering\arraybackslash}X
+}
+\toprule
+\textbf{System} & \textbf{API} & \shortstack{\textbf{Lit.}\\\textbf{Extr.}} & \textbf{SandBox} & \shortstack{\textbf{3D}\\\textbf{Reasoning}} & \textbf{Memory} \\
+\midrule
+SpeakToAProtein & Yes & Yes & Yes & Yes & Yes \\
+General AI    & No  & Yes & Yes & No  & No  \\
+ProteinChat        & No  & No  & No  & No  & No  \\
+Prot2Chat          & No  & No  & No  & Yes & No  \\
+ChatMolCopilot    & No  & No  & No  & Yes & No  \\
+ChemCrow           & Yes & Yes & Yes & No   & Yes \\
+CLADD              & Yes & Yes & No  & No  & No  \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+%\begin{figure}[tb]
+%\centering
+%\includegraphics[width=\columnwidth]{Figures/architecture2.png}
+%\caption{\textbf{Overview of the system architecture.} The system consists of a frontend with a protein viewer and chat interface, which includes a virtual file system and Python sandbox for automated code execution and viewer manipulation. The LLM Agent is the main orchestrator that interacts with the user and calls a set of custom tools through Model Context Protocol (MCP). These tools include a literature search for a given protein and text query, retrieving specialized data through APIs such as UniProt, PDBe and ChEMBL, as well as executing Python code in a sandbox environment with a dedicated virtual file system.}\label{fig:architecture}
+%\end{figure}
+
+\section{System Overview: \emph{Speak to a Protein}}\label{sec:overview}
+
+
+%\emph{Speak to a Protein} is an interactive system that transforms protein analysis into a dialogue between the researcher and an AI co-scientist. It unifies literature search, biochemical data analysis, and 3D structural visualization into a single, conversational interface.
+
+%Users begin by entering natural-language queries through an intuitive chat panel ---for example, asking questions about a protein's structure, function, ligand interactions, or relevant literature. In response, the system provides informative textual answers along with interactive, context-aware outputs: it can highlight molecular features within a live 3D viewer, display relevant literature passages, generate informative tables or plots, and execute custom code for on-the-fly analysis. Researchers can iteratively refine their queries, manipulate the visualization, or request new analyses, with each interaction coordinated by the AI to draw on the most relevant tools and data sources.
+
+%By integrating language understanding, data retrieval, computation, and visualization, \emph{Speak to a Protein} enables fast, reproducible, and accessible scientific exploration without switching between disparate applications or requiring advanced computational skills. The following section provides a detailed description of the system's architecture and its main components.
+
+
+\subsection{Architecture}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{Figures/architecture2.png}
+\caption{\textbf{Overview of the system architecture.} The system consists of a frontend with a protein viewer and chat interface for user interaction and visualization. The AI Agent is the main orchestrator that interacts with the user and invokes tools organized into five categories: viewer tools for visualization control, coding tools for bash and Python execution, semantic search over library documentation, scientific data retrieval through MCP servers (UniProt, PDB, ChEMBL, and literature search), and file operations. The agent operates within a sandboxed filesystem providing persistent project storage for data and outputs.}\label{fig:architecture}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\columnwidth]{Figures/viewer.png}
+\caption{
+    \textbf{Interactive analysis of the CDK2 structure (PDB: 1AQ1) using the \emph{Speak to a Protein} multimodal assistant.}
+    The user enters natural language queries in the chat panel (right), and the system responds with both textual answers and real-time updates to the 3D visualization (left). Python code executed in the integrated sandbox is shown in the console (bottom), providing full transparency and reproducibility of the underlying analyses.
+}\label{fig:viewer}
+\end{figure}
+
+
+The system architecture of \emph{Speak to a Protein} (\cref{fig:architecture}) is organized around three main components: a front-end for user interaction and visualization, a tooling layer for domain-specific capabilities, and a sandboxed filesystem for code execution and data management.
+The front-end provides the primary user interface, incorporating both a conversational chat panel and 3D molecular visualization capabilities (\cref{fig:viewer} and \cref{subsec:viewer}). At its core is a Python sandbox powered by Pyodide, enabling the execution of Python code directly in the browser to manipulate structures and control the viewer. Users interact through the chat panel, entering natural language requests. The system interprets responses from the AI agent and parses them to display textual information in the chat. It also detects when a specialized action is needed and invokes the corresponding viewer tools. 
+The backend processes natural language queries to a central AI agent, running either as a local LLM or via an external API. Upon receiving a user request, the agent plans a sequence of actions, including complex reasoning, modifying the viewer, or invoking some of its domain-specific tools:
+\begin{itemize}[leftmargin=1em]
+\item \textbf{Viewer Tools:} Load data files and execute Python code to carry out visual manipulations.
+\item \textbf{Coding Tools:} Execute bash and Python code in the sandboxed environment.
+\item \textbf{Semantic Search:} Query the source code of MoleculeKit \citep{Doerr2016} and related libraries for structure manipulation tasks.
+\item \textbf{Scientific Data:} Retrieve protein annotations from UniProt, experimental structures from PDB, bioactivity data from ChEMBL, and relevant literature from PubMed Central.
+\item \textbf{File Operations:} Read, write, and manage files within the sandboxed filesystem.
+\end{itemize}
+
+%\section{Knowledge and Data Sources}\label{sec:data}
+The scientific data tools are implemented as \emph{Model Context Protocol (MCP)}~\citep{anthropic_introducing_2024} servers, providing structured interfaces to biological databases with outputs designed for retrieval-augmented generation. Concretely, we implement four primary tools: (i) a literature retrieval component that performs sequence- and structure-grounded searches and builds a protein-conditioned RAG corpus from PubMed Central; (ii) a UniProt interface that supports both accession discovery and access to detailed entry information, including sequence data, cross-references, functional annotations, and literature links; (iii) a PDB interface that retrieves experimental structure metadata, resolution, and co-crystallized ligands with their chemical identifiers and database cross-references and (iv) a ChEMBL interface for harvesting assay activities and surfacing structure–activity relationship (SAR) information. All tools rely on programmatic access to public biological databases and return normalized, machine-readable results, enabling the model to consistently connect protein identity with structural, functional, and biochemical evidence. This modular organization allows complex scientific queries to be decomposed into well-defined tool calls, whose implementation details we describe in \cref{sec:data:literature}--\ref{sec:data:chembl}.
+
+
+\subsection{Literature Search and Comprehension}\label{sec:data:literature}
+The literature tool constructs a protein-specific corpus that can be searched with a text query. While the literature discovery relies on \emph{curated references from UniProt}, the tool can be invoked with either a UniProt accession, PDB ID or FASTA sequence of the protein in question. If the user provides a UniProt accession, the references linked to this entry are augmented by expanding the selection to all linked PDB structures. If the input is a PDB code, the system first queries UniProt for all entries cross-referenced to that structure, and then collects their reference lists. If the input is a raw FASTA sequence, the system searches the Protein Data Bank to identify matching structures, resolves them to UniProt entries, and again retrieves their references. This pathway ensures that the system always incorporates the expert-curated literature that UniProt associates with a protein, regardless of the initial identifier type.
+
+The result of the literature discovery step yields a diverse set of article identifiers, including PubMed IDs, DOIs, and PubMed Central IDs. To unify them, we normalize all entries to \emph{PubMed Central IDs (PMCIDs)} using a public conversion service. Importantly, only the subset of publications that are openly available on PubMed Central can be downloaded and processed further; articles behind paywalls remain indexed only by their identifiers. For each accessible PMCID, we retrieve the article in XML format, which is efficient to fetch and preserves section and paragraph boundaries. The text is cleaned and segmented into coherent passages that are embedded into a vector space for retrieval-augmented generation (RAG) using LlamaIndex~\citep{Liu_LlamaIndex_2022}.
+
+All passages for a given protein are combined into a \emph{protein-conditioned retrieval index}, together with metadata such as PMCID, DOI, and the set of matched PDB and UniProt identifiers (\cref{tab:literature-mcp}). The index is cached on disk along with a list of associated protein identifiers (UniProt accessions, PDB IDs, FASTA sequences), so future queries for the same target can reuse the corpus without repeated downloads. At query time, the system formulates a descriptive retrieval prompt, retrieves the top-$k$ relevant passages, and returns them along with their citations. The retrieved text is then provided to the language model as grounded context, either to directly answer a user's question (e.g., "Which mutations in CDK2 affect inhibitor binding?") or to supply background for further analysis and additional tool calls (e.g., filtering ChEMBL assays for compounds tested in the cited studies, or highlighting reported residues in the 3D structural viewer).
+
+Despite involving multiple external databases and full-text retrieval, the entire pipeline runs in real time. Literature discovery, download, and RAG construction are typically completed within one to two minutes for a new protein, and subsequent queries on the same target are handled within seconds due to caching of the prebuilt index.
+
+
+
+
+\subsection{UniProt: Accession Discovery and Rich Entry Information}\label{sec:data:uniprot}
+The UniProt MCP server provides structured access to the UniProt knowledgebase, enabling both the discovery of correct accessions and the retrieval of detailed entry information. It is organized into two complementary tools. The first is a text search utility that resolves canonical entries from colloquial protein names. This call returns a concise shortlist with entry type, primary accession, protein name, organism, annotation score, and keywords, allowing the model to select the most relevant entry—for example, the reviewed entry of the correct organism—without inflating context.
+
+Once an accession has been identified, the data lookup tool retrieves the corresponding UniProt record or resolves from a PDB identifier when structures are the starting point. The response contains identifiers and provenance suitable for citation, descriptive and gene fields, the full amino acid sequence, span-form features encoding domains, active and binding sites, post-translational modifications, and variants, compressed literature references with bibliographic fields and sequence "focus" positions, and a set of cross-references that link the UniProt entry to other databases (\cref{tab:uniprot-mcp-cdk2}). These include structural repositories such as the Protein Data Bank (PDB) and AlphaFoldDB, pharmacological resources such as DrugBank and DrugCentral, and functional annotation databases such as Gene Ontology (GO). This representation is compact but expressive, preserving direct links to external resources while making it straightforward to highlight residues, align sequences, or connect functional information across databases.
+
+In practice, the model first issues a name query (when necessary), selects appropriate entries, and then performs a data lookup to obtain a comprehensive record. The sequence can, for example, be forwarded to the literature tool for protein-conditioned retrieval; feature spans can be used to create residue highlights and distance measurements in the 3D viewer; and cross-references provide pivots to structures, pathways, or pharmacology resources. The separation of discovery (name to accession) and enrichment (accession or PDB to full entry) keeps tool contracts simple, enabling deterministic composition with other MCP servers.
+
+
+
+
+\subsection{ChEMBL: Bioactivity and SAR Tables}\label{sec:data:chembl}
+The ChEMBL MCP server is dedicated to retrieving and organizing information about assays recorded in the ChEMBL database. It focuses specifically on assay-level measurements of how molecules interact with a given protein target. When invoked with a target identifier and an assay type, the tool downloads all matching entries from the ChEMBL API to assemble a complete activity table. To reduce latency and ensure reproducibility, the results are cached locally; repeated queries for the same target reuse this cache until it expires.
+
+Because raw ChEMBL activities are highly heterogeneous, mixing different units, redundant identifiers, and free-text fields, the MCP normalizes the dataset into a streamlined representation that highlights the essential biochemical information (\cref{tab:chembl-mcp}). Rarely useful or inconsistent fields are removed, while values necessary for reasoning about structure–activity relationships, such as standard measurements, molecule identifiers, and publication context, are retained. All entries that pass this filtering are written to a tabular file in CSV format. This file is stored on disk and its path is returned alongside a compact summary object.
+
+The stored CSV file plays an important role in the overall system. It is directly accessible in the sandboxed filesystem where the model can execute Python, enabling downstream analysis using libraries such as pandas. For example, the model can reload the file, apply additional filters, calculate statistics, or search for specific compounds that meet criteria relevant to the user's query. This design separates the heavy data retrieval and normalization step from the flexible, interactive analysis that happens later in dialogue with the scientist.
+
+For functional and binding assays, which are the most commonly used in drug discovery, the tool also highlights the most potent entries with standardized units. This provides a quick surface view of the strongest bioactivity signals, while leaving the full dataset available for deeper inspection. Other assay families, such as ADME or toxicity, are treated similarly but are generally provided only as complete CSV tables, reflecting their diversity in format and measurement.
+
+\subsection{Structural Repositories: PDB and Predicted Models}\label{sec:data:pdb}
+The PDB MCP tool provides structured access to the Protein Data Bank (PDBe) API \citep{Burley2018}. It can be invoked with one or more PDB identifiers to retrieve detailed entry information. This includes metadata such as the experimental method, resolution, and publication details, as well as molecular information like the list of co-crystallized small molecules (ligands). The tool automatically filters out common solvents and ions to return only ligands relevant for analysis, providing their chemical identifiers (SMILES, InChIKey) and cross-references to databases like ChEMBL (\cref{tab:pdb-mcp}). This capability is crucial for large-scale structural analyses, such as identifying all ligand-bound structures for a given protein target, a common starting point in drug discovery projects.
+
+
+\subsection{Agentic 3D Grounding and Interfaces with Scientists}\label{subsec:viewer}
+
+Understanding proteins requires the navigation of multiple types of information, such as three-dimensional structures, experimental assay tables, and textual annotations. A central goal of \emph{Speak to a Protein} is to connect these diverse modalities through a single conversational interface, ensuring that system responses are not only generated in natural language but are also grounded in concrete evidence such as 3D visualizations, data tables, and executable code. This grounding operates bidirectionally: users can visually verify AI-generated hypotheses, while the AI agent itself can capture and interpret viewer states to inform its reasoning. To achieve this, we provide a set of interactive interfaces that extend dialogue into complementary domains: a structural viewer for molecular inspection, a tabular analysis environment for filtering and plotting assay data, and mechanisms for synchronizing actions across views. Together, these interfaces enable users to fluidly transition between asking questions, running analyses, and visually verifying hypotheses. Significantly, we are building these capabilities on top of a web application that has already attracted more than 18,000 registered users over the years, even in the absence of these AI features. These new capabilities enable medicinal chemists with no-code experience to use the tools like an expert computational chemist. We thus anticipate that it will be used by a considerable number of scientists, as demonstrated by the platform usage metrics in Appendix \ref{sec:appendix_usage}.
+
+
+In \emph{Speak to a Protein}, these functionalities are built using an entirely client-side sandbox for dynamic visualization and manipulation of molecular structures \citep{torrens2023playmolecule}. The sandbox builds on a browser-based molecular visualization toolkit that combines the high-performance \texttt{mol*} visualization engine \citep{Sehnal2021},  capable of rendering large biomolecular structures and molecular dynamics trajectories directly in the browser, with a WebAssembly-enabled Python runtime (Pyodide). This allows the use of powerful Python libraries such as MoleculeKit \citep{Doerr2016} in the client environment, enhancing the viewer's capabilities to load and manipulate a wide range of common structural file formats, from PDB and CIF to molecular dynamics trajectory files such as XTC and TRR.
+
+
+A key feature is the ability to control this viewer through natural language commands. Requests such as "highlight the ATP-binding site" are translated into tool calls that execute Python code within the viewer, producing visual changes in real time (\cref{fig:viewer}). Beyond user-initiated actions, the agent can autonomously capture screenshots of the current viewer state and analyze them using vision capabilities. This agentic 3D vision enables the model to verify the results of its own manipulations, identify structural features that may not be explicitly encoded in the data, and iteratively refine visualizations based on what it observes. 
+
+%Users can request a broad set of actions, such as:
+%\begin{itemize}[leftmargin=1em]
+%    \item \textbf{Loading structures}: Users can instruct the system to load structures either from public sources or by uploading custom files.
+%    \item \textbf{Controlling the visualization}: The AI can create, modify, or remove molecular representations on demand. Structures or any of their subsets can be rendered in diverse styles, such as cartoon, ball-and-stick, spacefill, or surface, and colored according to different properties, such as chain, residue type, secondary structure, or user-defined colors. The selection logic uses the expressive VMD selection language, enabling complex queries like "show only the protein backbone," "highlight tyrosine residues in chain A," or "display all residues within 5~\AA{} of the ligand."
+%    \item \textbf{Focusing the viewer}: The camera can be centered or zoomed onto regions of interest, such as active sites, mutated residues, or selected domains.
+%    \item \textbf{Performing measurements}: Users can request measurements of distances, angles, or dihedrals between atoms or residues.
+%    \item \textbf{Manipulating structures}: The system can modify loaded structures, for example, by filtering out water molecules or other unwanted components, splitting chains, or extracting subsets for closer inspection.
+%    \item \textbf{Structural alignment}: Multiple structures can be superimposed based on selected atoms (e.g., C$\alpha$ atoms), allowing direct comparison of conformational states or homologous proteins.
+
+%\end{itemize}
+
+
+
+%\subsection{Tabular Data Analysis: Filtering, Analytics, Plots}
+
+
+\section{Experiments}\label{sec:cases}
+We present a set of illustrative case studies to show the capabilities and versatility of \emph{Speak to a Protein}. Throughout all experiments reported in this section, we employ \textbf{GPT-5.2} as the foundational language model driving the \emph{Speak to a Protein} agent.
+
+Evaluating agentic systems for computational chemistry is challenging: existing benchmarks target either language understanding or isolated tasks, but few assess integrated reasoning over 3D structures, databases, and domain tools. We therefore evaluate on two complementary benchmarks: a \emph{Simple Bio-Structural Benchmark} we developed to test basic computational chemistry capabilities; and \emph{LiveProteinBench}~\citep{liveproteinbench}, a contamination-free benchmark for protein property prediction.
+We also present two case studies using the dopamine D3 receptor (D3R) \citep{Chien2010} and cyclin-dependent kinase 2 (CDK2) \citep{Malumbres2009}. These examples highlight how the system enables users to ask scientific questions, integrate data from multiple sources, and generate insights through interactive multi-modal analysis. We demonstrate the system's ability to produce a structured summary report in LaTeX from all gathered information. By indexing this information, the system creates a queryable knowledge base that can be shared with other users.
+
+\subsection{Bio-Structural Benchmark}\label{subsec:benchmark}
+We established a benchmark of 20 tasks designed to test capabilities essential for computational chemistry. The dataset spans two categories: (i) \textbf{Structural Geometry} (e.g., calculating RMSD, detecting steric clashes, measuring residue distances); and (ii) \textbf{Sequence Retrieval} (e.g., extracting specific chain sequences).
+We compared \emph{Speak to a Protein} against \emph{GPT-5.2} with web search and Python, representative of the tools increasingly adopted by scientists for research tasks. While this baseline offers reasoning capabilities, web access, and code execution, it lacks specialized biochemical tools, a persistent file system for cross-referencing API outputs, and integrated 3D visualization. Tasks were scored as correct or incorrect based on ground truth derived from programmatic calculations and database entries.
+\begin{figure}[H]
+\centering
+\includegraphics[width=1.0\columnwidth]{Figures/benchmark_by_category_filtered.png}
+\caption{\textbf{Simple Bio-Structural Benchmark}. Accuracy by category for \emph{Speak to a Protein} and \emph{GPT-5.2} (Web \& Python) on 23 curated tasks.}
+\label{fig:benchmark}
+\end{figure}
+As shown in \cref{fig:benchmark}, \emph{Speak to a Protein} achieved an accuracy of \textbf{90\% (18/20)}, significantly outperforming the baseline at \textbf{35\% (7/20)}. \emph{GPT-5.2} frequently failed on tasks requiring precise structural geometry or specific bioactivity data. While it represents a powerful general-purpose resource for scientists, it lacks the specialized infrastructure that computational chemists require. Its reliance on web search often resulted in retrieval errors, and without a specialized environment to manipulate and visualize molecular structures, it could not accurately derive geometric properties. In contrast, our system succeeded by executing analysis scripts and querying domain tools, ensuring that answers were derived directly from raw data and grounded in the interactive 3D viewer. The full list of benchmark questions is provided in Appendix \ref{app:benchmark_questions}.
+
+\subsection{Ablation study with LiveProteinBench}\label{subsec:liveproteinbench}
+To assess the specific impact of our scientific data tools, we conducted an ablation study using LiveProteinBench \citep{liveproteinbench}, a contamination-free benchmark organized into three categories: physicochemical properties, structural localization, and functional annotation. 
+
+In this experiment, we disabled the scientific data retrieval tools of \emph{Speak to a Protein}, restricting the system to its agentic 3D grounding and coding capabilities. Without access to specialized databases, \emph{Speak to a Protein} achieved an overall accuracy of \textbf{53\%}, performing similarly to GPT-5.2 at \textbf{51\%} (\cref{fig:liveproteinbench}). This stands in stark contrast to the Bio-Structural Benchmark (\cref{subsec:benchmark}), where our full system, equipped with all its tools, outperformed the baseline. This ablation study thus highlights that while 3D reasoning and code execution are vital for analysis, the scientific data tools are the primary drivers of domain-specific performance. Without them, the agent lacks the empirical evidence, such as the PDB structures themselves, necessary to ground its visual and computational capabilities.
+
+
+% To assess performance on protein property prediction, we evaluated on LiveProteinBench~\citep{liveproteinbench}, a contamination-free benchmark comprising 12 tasks organized into three categories. \emph{Physicochemical Properties} tests prediction of binding affinity ($K_d$), half-maximal effective concentration (EC$_{50}$), optimal pH, and optimal temperature. \emph{Structure \& Location} probes structural understanding through active site identification, cofactor prediction, motif position localization, and transmembrane region detection. \emph{Functional Annotation} evaluates broader biological knowledge via catalytic activity prediction, EC number assignment, and Gene Ontology (GO) term classification across molecular function, cellular component, and biological process. 
+% We compared \emph{Speak to a Protein} against GPT-5.2, both powered by the same underlying language model to isolate the effect of agentic capabilities. Unlike the original benchmark protocol, which provides models with expert-curated structural images, we supplied only the textual information and allowed each system to autonomously retrieve and visualize structures as needed. Scientific data retrieval tools were disabled to ensure a fair comparison of reasoning capabilities.
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=1.0\columnwidth]{Figures/liveproteinbench_results.png}
+\caption{\textbf{LiveProteinBench Performance.} Accuracy by task for \emph{Speak to a Protein} and GPT-5.2 across 12 protein property prediction tasks. Dashed line indicates random baseline (25\%).}
+\label{fig:liveproteinbench}
+\end{figure}
+% As shown in \cref{fig:liveproteinbench}, \emph{Speak to a Protein} achieved an overall accuracy of \textbf{51\%}, outperforming the baseline at \textbf{49\%}. The results suggest that while coding tools and agentic 3D capabilities provide measurable benefits, further improvements in protein-specific tasks will likely require integration of specialized scientific tools and domain-specific models.
+
+% The tasks in LiveProteinBench, and most challenges in computational chemistry and biology, require capabilities that extend beyond general reasoning, multimodality, and code execution. Accurate prediction of binding affinities, optimal reaction conditions, or enzyme classification fundamentally depends on specialized tools: molecular dynamics simulations, quantum mechanical calculations, sequence alignment algorithms, and domain-specific predictive models trained on biochemical data. While agentic 3D 3D grounding can provide incremental gains beyond a strong general-purpose model, it cannot substitute for the quantitative methods that underpin rigorous computational biochemistry. Future work will focus on integrating such specialized tools into our agentic framework to address these limitations.
+
+\subsection{Speaking about the Dopamine D3 receptor (D3R)}
+We use \emph{Speak to a Protein} to address a series of research questions related to D3R,  a G protein-coupled receptor of significant pharmacological interest.
+In the video trace \url{https://youtu.be/H6ag4JJAM0w}, we show a possible user interaction with our system centered on D3R. The user begins by asking about the available structures for this receptor, loading the listed structure 3PBL. Next, the user instructs the system to filter for chain A, and changes the visual representation to focus on the binding pocket. Finally, it requests a list of known inhibitors associated with D3R. All this information is collected and made available to the AI so that knowledge is gathered and contextualized.
+
+Focusing on the last query, we illustrate the workflow of the system (\cref{fig:d3r-table}). Upon the user's request, the AI used several tools in sequence to produce the necessary data. Using these tools, it identified the correct UniProt entry for D3R and used it to query ChEMBL for all relevant bioactivity data. The retrieved assay results were compiled and automatically stored in a CSV file, which was then loaded directly into the viewer for exploration and analysis.
+The resulting table provides an overview of all known D3R inhibitors, along with chemical structures, assay details, potency metrics (such as EC${50},IC{50},K_i$), and references to the corresponding literature. Notable examples include inhibitors with subnanomolar to low nanomolar potencies such as CHEMBL5841759 (K$_i$: 0.012~nM) and CHEMBL5802711 (K$_i$: 0.014~nM). The results also listed several potent reference agonists for context.
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\columnwidth]{Figures/d3r-inhibitors.png}
+\caption{
+    \textbf{Retrieval and exploration of potent D3R inhibitors.}
+    Example user query and system workflow for fetching all known D3R inhibitors and their affinities using \emph{Speak to a Protein}. The chat panel shows the AI's reasoning, including the tools used and the final response. On the left, the interface displays an interactive table of D3R inhibitors, including chemical structures, ChEMBL IDs, assay details, and more, enabling direct exploration and further analysis.}\label{fig:d3r-table}
+\end{figure}
+
+In the video trace \url{https://youtu.be/nER3vC90ylQ}, we show how to investigate the differences between the D3 and D2 receptors. The literature search capability can help rapidly surface and synthesize expert knowledge from primary sources to address detailed structural questions.
+Upon receiving the prompt \emph{"Based on the literature, compare the binding pockets of D3R and D2R and summarize the main structural features that could be exploited for ligand selectivity."}, the system first uses \emph{UniProt Search} to identify the canonical UniProt IDs for the specified proteins, ensuring precise target selection. Then, using \emph{Literature Search}, an embedding-based literature search is performed, retrieving relevant articles and review information from PubMed Central that address the requested topic.
+
+In this example, the system processed a set of 12 literature passages for D2R and 10 for D3R, selecting at least four distinct, peer-reviewed structural biology studies and related supporting works \citep{Wang2018,Chien2010,Yin2020,Fan2020}. Based on this, the generated answer highlighted that while the orthosteric binding pocket is highly conserved, selectivity can be achieved by targeting differences in the architecture and flexibility of the 'extended binding pocket', as well as in the conformation of extracellular loops. It also described the significance of distinct residues (such as Trp100 and residues in EL1/EL2, positions 1.39 and 7.35) that shape ligand binding modes and selectivity opportunities.
+The resulting analysis revealed that while D3R and D2R share a conserved binding pocket core, D2R possesses additional flexible and hydrophobic residues that create a deeper, more accommodating pocket. These structural differences, clearly visualized and annotated in the viewer, help explain how each receptor achieves ligand selectivity, providing actionable insights for targeted drug design.
+
+
+
+\subsection{Speaking about the Cyclin-dependent kinase 2 (CDK2)}
+
+We present a complete drug discovery workflow using cyclin-dependent kinase 2 (CDK2), a validated cancer target with extensive structural and bioactivity data \citep{Malumbres2009}. This example showcases how \emph{Speak to a Protein} can streamline the entire process from initial target evaluation to actionable insights.
+Our analysis begins with a systematic exploration of available structural data, progresses through mining and filtering of bioactivity data, and culminates in an integrated structural-activity analysis. The workflow highlights the system's ability to seamlessly transition between different data modalities and analysis types, all through natural language interactions.
+
+\textbf{Structure-activity.} The complete conversational trace for this analysis is provided in Appendix~\ref{sec:appendix_trace_cdk2}. First, we ask the AI system to retrieve all available CDK2 structures from the Protein Data Bank. The system first used the UniProt tool to identify the canonical human CDK2 entry (P24941) and retrieve all 462 associated PDB structures. It then systematically queried each structure using the PDB information tool, which parsed each entry to extract co-crystallized ligands. After filtering out common solvents and ions, this process identified 479 unique ligand-structure pairs containing small molecules relevant for drug discovery.
+The system then automatically determined bioactivity coverage, revealing that 132 out of 258 ChEMBL-annotated ligands had experimental activity measurements available. Through systematic data cleaning and deduplication focused on IC$_{50}$ values, we generated a refined dataset of approximately 100 unique CDK2-ligand complexes, ranked by potency.
+The top 20 most potent complexes (IC$_{50}$ values ranging from sub-nanomolar to 15 nM) were loaded into the 3D viewer and structurally aligned. For detailed binding site analysis, the system identified and visualized only the ATP-binding pocket residues (within 6 \AA{} of the co-crystallized ligands), excluding solvents and common crystallization agents (see \cref{fig:cdk2_analysis} in Appendix~\ref{sec:appendix_cdk2_report}).
+
+\paragraph{Automated Report Generation.}
+Furthermore, the AI extracted the binding pocket sequences and stored them in FASTA format. Pairwise sequence alignment revealed high conservation across the ATP-binding site, with only minor variations at peripheral positions. The AI system then conducted a comprehensive literature search to contextualize these findings with existing CDK2 research, automatically generating a markdown summary of relevant studies discussing binding site features and structure-activity relationships.
+The complete report, automatically generated by the AI system synthesizing all gathered data into actionable insights suitable for distribution to medicinal chemistry teams, is provided in Appendix~\ref{sec:appendix_cdk2_report}.
+The system's ability to generate publication-ready reports and comprehensive literature summaries further enhances its utility in collaborative drug discovery environments, where rapid communication of complex structural and biochemical insights is essential for decision-making.
+
+\section{Conclusion and Limitations}\label{sec:discussion}
+
+This study demonstrates how \emph{Speak to a Protein} compresses traditional workflows involving several hours of manual data gathering, analysis, and synthesis into an interactive session taking less than an hour. The system's ability to generate publication-ready reports further enhances its utility in collaborative drug discovery environments where rapid understanding and communication of complex structural and biochemical insights are essential for decision-making.
+
+We found the following limitations in the current version of \emph{Speak to a Protein}. The open web application accesses only public information, such as literature, structure-activity relationships, and structural data. This limits the data access and the understanding and downstream calculations. We plan to easily extend it with additional tools to access internal or proprietary datasets, further broadening the scope of information that can be queried and integrated.
+ The 3D viewer can experience performance issues when rendering a large number of complex structures simultaneously. We also observe occasional difficulties in seamlessly connecting outputs between tools, stemming from different data representations across the system's components, e.g., residue indices across literature and structural databases. Furthermore, long tool outputs can strain the model's context window. Future work will focus on offloading large data payloads to files and equipping the model with a broader set of tools for file management, allowing for more robust and complex analytical workflows.
+
+\section*{Impact Statement}
+
+This paper presents work whose goal is to advance the field of AI-assisted scientific discovery in structural biology and drug discovery. The system is designed to democratize access to complex protein analysis by enabling researchers without specialized computational skills to perform advanced structural and biochemical analyses. Potential positive impacts include accelerating drug discovery timelines, reducing barriers to entry for bench scientists, and enabling more rapid hypothesis generation in biomedical research. We do not foresee specific negative societal consequences that must be highlighted, as the system operates on publicly available scientific data and is intended to augment, not replace, human scientific judgment.
+
+\bibliography{references}
+
+\end{document}

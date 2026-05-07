@@ -38,3 +38,6 @@ tectonic supporting_information.tex
   - `supporting_information.tex` - Supplementary material
   - `references.bib` - Bibliography
   - `imgs/` - Figure assets 
+
+## References
+Speak To A Protein is a version of PlayMoleculeAI without playmolecule tools. We don't put any reference to playmolecule in the paper because it needs to be anonymous. The playmoleculeAI agent repo is in: /fast_shared/users/carles/repos/carles/playmoleculeAI
