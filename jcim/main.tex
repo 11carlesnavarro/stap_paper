@@ -103,56 +103,19 @@ This paper makes the following contributions: We present the design and architec
 
 \section{Related Work}\label{sec:related}
 %AI Scientist
-The ambition to create an AI capable of scientific discovery is a long-standing goal, articulated in visions such as Hiroaki Kitano's proposal for an "AI Scientist": a system that could autonomously formulate hypotheses, design experiments, and achieve Nobel-class discoveries \citep{kitano2021}. While such a fully autonomous system \citep{boiko2023autonomous, zou2025agente} remains a grand challenge, recent progress in large language models (LLMs) has enabled the development of a more immediate and collaborative paradigm: the "AI co-scientist" or "advanced intelligence" in Kitano's words.
+The ambition to create an AI capable of scientific discovery is a long-standing goal, articulated in visions such as Hiroaki Kitano's proposal for an "AI Scientist": a system that could autonomously formulate hypotheses, design experiments, and achieve Nobel-class discoveries \citep{kitano2021}. Recent systems push this frontier further: \emph{Kosmos} \citep{mitchener2025kosmos} runs multi-hour autonomous campaigns that read thousands of papers and execute tens of thousands of lines of analysis code per task. While such fully autonomous systems \citep{boiko2023autonomous, zou2025agente, mitchener2025kosmos} remain a grand challenge, recent progress in large language models (LLMs) has enabled the development of a more immediate and collaborative paradigm: the "AI co-scientist" \citep{gottweis2025coscientist} or "advanced intelligence" in Kitano's words.
 
 %\subsection{Conversational and Multimodal Protein Assistants}
-Early systems explored conversational interfaces for structural inspection and Q\&A over proteins. \citet{guo2023proteinchat} demonstrated \emph{ProteinChat}, which couples LLM prompting with protein 3D structures to answer user questions about residues and pockets. Contemporary efforts such as \citet{wang2024protchatgpt} and \citet{xiao2024proteingpt} investigate protein-aware prompting and multimodal conditioning for function/property reasoning. Most recently, \citet{wang2025prot2chat} proposes \emph{Prot2Chat}, an LLM that fuses protein sequence, structure, and text via an early-fusion adapter, directly targeting protein Q\&A.
+Early systems explored conversational interfaces for structural inspection and Q\&A over proteins. \citet{guo2023proteinchat} demonstrated \emph{ProteinChat}, which couples LLM prompting with protein 3D structures to answer user questions about residues and pockets. Contemporary efforts such as \citet{wang2024protchatgpt} and \citet{xiao2024proteingpt} investigate protein-aware prompting and multimodal conditioning for function/property reasoning. Most recently, \citet{wang2025prot2chat} proposes \emph{Prot2Chat}, an LLM that fuses protein sequence, structure, and text via an early-fusion adapter, directly targeting protein Q\&A. Complementary work strengthens the protein side itself, with structure-enhanced instruction tuning \citep{wu2025sepit} and trimodal alignment of sequence, structure, and language for advanced protein search \citep{su2025protrek}.
 
 %\subsection{Structure-Aware Tools and Visualization Copilots}
 Beyond text-only chat, domain copilots increasingly drive molecular viewers and modeling tools. \citet{sun2024chatmol} introduce \emph{ChatMol Copilot}, an LLM agent that coordinates cheminformatics and modeling tools (e.g., docking, conformer generation) in response to natural-language requests. In parallel, \citet{ille2024gpt4structural} systematically evaluates GPT-4's ability to perform rudimentary structural modeling and protein–ligand interaction analysis, highlighting both promise and limitations. Our work is aligned with this line but centers on tightly coupling language, code execution, and a live 3D scene for grounded, interactive answers.
 
 %\subsection{Agentic LLMs for Chemistry and Drug Discovery}
-Agent frameworks augment LLMs with tool use, retrieval, and planning. \emph{ChemCrow} \citep{bran2024chemcrow} shows that equipping GPT-4 with chemistry tools enables multi-step synthesis planning and materials tasks. More recently, CLADD \citep{lee2025cladd} proposes a retrieval-augmented multi-agent system specialized for drug discovery tasks. \emph{Speak to a Protein} adopts the agentic paradigm for structural biology: it retrieves literature/structures, executes analyses (e.g., pocket mapping, SAR tables), and grounds responses in synchronized 3D visualizations.
+Agent frameworks augment LLMs with tool use, retrieval, and planning. \emph{ChemCrow} \citep{bran2024chemcrow} shows that equipping GPT-4 with chemistry tools enables multi-step synthesis planning and materials tasks. More recently, CLADD \citep{lee2025cladd} proposes a retrieval-augmented multi-agent system specialized for drug discovery tasks. Multi-agent platforms extend this paradigm to end-to-end workflows: \emph{LLM-RDF} \citep{ruan2024llmrdf} coordinates six specialized agents across literature scouting, experiment design, hardware execution, and result interpretation, while \emph{ChatInvent} \citep{he2026chatinvent} brings agentic molecular design and synthesis planning into a real-world pharmaceutical setting. At broader scope, \emph{Biomni} \citep{huang2025biomni} pairs LLM reasoning with retrieval-augmented planning and code execution over a large catalogue of biomedical tools and databases, targeting general-purpose biomedical workflows. \emph{Speak to a Protein} adopts the agentic paradigm for structural biology: it retrieves literature/structures, executes analyses (e.g., pocket mapping, SAR tables), and grounds responses in synchronized 3D visualizations.
 
 %\subsection{Protein–Text Alignment and Cross-Modal LLMs}
 %A complementary thread aligns protein representations with natural language. \citet{wu2024proteinclip} aligns protein LMs with text via contrastive learning; \citet{wang2024instructprotein} uses knowledge-graph–derived instructions to align human and protein "languages." \emph{ProtST} \citep{xu2023protst} improves sequence models using biomedical text, enabling zero-shot retrieval/classification. \emph{ProtLLM} \citep{zhuo2024protllm} interleaves protein tokens with text via a "protein-as-word" objective, while \emph{LLaPA} \citep{zhou2025llapa} integrates protein encoders and PPI networks into an instruction-following LLM. Our system draws on these ideas to support bidirectional grounding: language queries that reference sequence/structure context, and code/visual actions that reflect the language plan.
-
-Compared to prior work, our contribution is an end-to-end, \emph{interactive} co-scientist for proteins that (i) unifies literature/structure/ligand retrieval, (ii) reasons with tabular and 3D modalities, (iii) executes code for analyses, and (iv) directly annotates/manipulates the 3D scene in response to dialogue (\cref{tab:system_comparison}). This tightly coupled language–code–3D loop reduces the time from question to evidence relative to agent-only or text-only systems.
-
-\begin{table}[H]
-\centering
-\caption{Comparison of Speak to a Protein with representative LLM-based systems developed for drug
-discovery, as well as with general-purpose AI models. Speak to a Protein uniquely combines access to multiple biological databases, scientific literature extraction, on-the-fly code execution, real-time 3D molecular
-reasoning, and persistent knowledge management.
-These capabilities are not collectively available in other existing platforms}
-\label{tab:system_comparison}
-% Reduce font size to fit 7 columns in one column
-\scriptsize
-% Reduce horizontal padding between columns (default is usually 6pt)
-\setlength{\tabcolsep}{3pt}
-
-\begin{tabularx}{\textwidth}{
-    >{\raggedright\arraybackslash}p{2.6cm} % Fixed width for the 'System' column to ensure names fit
-    >{\centering\arraybackslash}X
-    >{\centering\arraybackslash}X
-    >{\centering\arraybackslash}X
-    >{\centering\arraybackslash}X
-    >{\centering\arraybackslash}X
-    >{\centering\arraybackslash}X
-}
-\toprule
-\textbf{System} & \textbf{API} & \shortstack{\textbf{Lit.}\\\textbf{Extr.}} & \textbf{SandBox} & \shortstack{\textbf{3D}\\\textbf{Reasoning}} & \textbf{Memory} \\
-\midrule
-SpeakToAProtein & Yes & Yes & Yes & Yes & Yes \\
-General AI    & No  & Yes & Yes & No  & No  \\
-ProteinChat        & No  & No  & No  & No  & No  \\
-Prot2Chat          & No  & No  & No  & Yes & No  \\
-ChatMolCopilot    & No  & No  & No  & Yes & No  \\
-ChemCrow           & Yes & Yes & Yes & No   & Yes \\
-CLADD              & Yes & Yes & No  & No  & No  \\
-\bottomrule
-\end{tabularx}
-\end{table}
 
 %\begin{figure}[tb]
 %\centering
@@ -183,28 +146,27 @@ The system architecture of \emph{Speak to a Protein} (\cref{fig:architecture}) i
 The frontend hosts the chat panel, the 3D molecular viewer (\cref{fig:viewer} and \cref{subsec:viewer}), and a Pyodide-based IPython console for client-side analysis. The user converses through the chat panel; the frontend renders the agent's text replies and applies viewer commands as the agent issues them.
 
 At each user request, the agent harness drives an agent loop: the model emits tool calls, the harness dispatches them, and their outputs are fed back into the next model invocation, continuing until the task is complete. To handle long sessions, the memory module autocompacts older turns into a working memory: a compact, adaptive summary that the agent itself rewrites at each compaction and that is reinjected into context on subsequent turns.
-\begin{itemize}[leftmargin=1em]
-\item \textbf{Viewer Tools:} Issue commands to the 3D viewer to load structures, define selections, and produce visual manipulations.
-\item \textbf{Code Execution:} Run bash and Python commands inside the sandboxed filesystem.
-\item \textbf{File Operations:} Read, write, and edit files within the sandboxed filesystem.
-\item \textbf{Semantic Search:} Query the search service for passages from indexed library codebases (MoleculeKit \citep{Doerr2016} and related packages), curated database documentation, and protein-conditioned literature corpora built on demand from PubMed Central (\cref{sec:data:literature}).
-\item \textbf{Sub-agents:} Delegate self-contained subtasks to spawned agents to keep the main context window concise.
-\end{itemize}
-
-Rather than wrapping each external scientific database in a dedicated tool, the system relies on \emph{skills}: lightweight, on-demand instructions that teach the agent how to interact with public scientific resources. Each skill is a Markdown document, optionally accompanied by example scripts, describing access patterns, identifier conventions, rate limits, and idiomatic queries for a given resource. Skills are surfaced through progressive disclosure: at session start the agent receives a one-line description of every available skill, and when one becomes relevant the agent reads the corresponding \texttt{SKILL.md} and uses it to write Python or bash inside the sandbox. We currently provide skills for protein and structure databases (UniProt, PDB, AlphaFoldDB), chemical and bioactivity databases (ChEMBL, PubChem, DrugBank, ZINC), gene and genomic databases (NCBI Gene, Ensembl), and biomedical literature retrieval (PubMed). New databases or workflows can be added by authoring a new skill, without modifying the core system.
-
-The sandboxed filesystem is a Docker container with restricted egress, where outbound traffic is filtered by a forward proxy that allowlists scientific domains. The agent operates over a per-session project workspace alongside a pre-installed scientific Python runtime including MoleculeKit, RDKit, BioPython, and pandas. This colocation makes data retrieval and downstream analysis a single continuous activity: a skill-driven query against, for example, ChEMBL writes a CSV into the workspace, which the agent then loads with pandas in the same sandbox to filter compounds, compute statistics, or feed values into the viewer. Files generated by the agent persist across turns, supporting iterative refinement and full reproducibility of the underlying analyses.
 
 
-\subsection{Literature Search and Comprehension}\label{sec:data:literature}
-The literature pipeline assembles a protein-conditioned corpus on demand and serves it as one of the indices behind the search service. While discovery relies on \emph{curated references from UniProt}, the pipeline accepts a UniProt accession, a PDB identifier, or a FASTA sequence as input. For a UniProt accession, the references linked to that entry are augmented by expanding the selection to all PDB structures cross-referenced from it. For a PDB code, the system first queries UniProt for all entries cross-referenced to that structure, and then collects their reference lists. For a raw FASTA sequence, the system searches the Protein Data Bank to identify matching structures, resolves them to UniProt entries, and again retrieves their references. This pathway ensures that the system always incorporates the expert-curated literature that UniProt associates with a protein, regardless of the initial identifier type.
+\subsection{Tools}\label{sec:tools}
 
-Discovery yields a diverse set of article identifiers, including PubMed IDs, DOIs, and PubMed Central IDs. To unify them, we normalize all entries to \emph{PubMed Central IDs (PMCIDs)} using a public conversion service. Only the subset of publications openly available on PubMed Central can be downloaded and processed further; articles behind paywalls remain indexed only by their identifiers. For each accessible PMCID, we retrieve the article in XML format, which is efficient to fetch and preserves section and paragraph boundaries. The text is cleaned and segmented into coherent passages that are embedded into a vector space for retrieval-augmented generation (RAG) using LlamaIndex~\citep{Liu_LlamaIndex_2022}.
+The system exposes several tools to the agent, a set of core primitives that run code and edit files inside the sandbox, viewer tools that drive the 3D viewer in the frontend, a semantic search service over indexed library codebases, and a literature retrieval tool that gathers relevant publications for a given protein.
 
-All passages for a given protein are combined into a \emph{protein-conditioned retrieval index}, together with metadata such as PMCID, DOI, and the set of matched PDB and UniProt identifiers (\cref{tab:literature-mcp}). The index is cached on disk along with the associated protein identifiers, so future queries on the same target reuse the prebuilt corpus without repeated downloads. At query time, the system formulates a descriptive retrieval prompt, retrieves the top-$k$ relevant passages, and returns them along with their citations. The retrieved text is provided to the language model as grounded context, either to directly answer a user's question (e.g., "Which mutations in CDK2 affect inhibitor binding?") or to supply background for further analysis and additional tool calls (e.g., filtering ChEMBL assays for compounds tested in the cited studies, or highlighting reported residues in the 3D viewer).
+\noindent\textbf{Core tools.} The system's core tools are a set of primitives that execute shell commands in the sandbox, read, write, and edit files there, visualize images, read PDFs, and delegate self-contained subtasks to sub-agents. All execution happens inside the sandboxed filesystem of \cref{fig:architecture}, a Docker container with a per-session project workspace, a preinstalled scientific software stack, and outbound network restricted by a forward proxy that allowlists scientific domains. The stack spans Python (NumPy, pandas, SciPy, RDKit, MoleculeKit, BioPython, scanpy), R with Bioconductor (DESeq2, edgeR, limma, clusterProfiler), and command-line bioinformatics tools (samtools, bcftools, mafft, hmmer). Files persist across turns, supporting iterative refinement and reproducibility.
 
-Despite involving multiple external databases and full-text retrieval, the pipeline runs in real time. Discovery, download, and RAG construction typically complete within one to two minutes for a new protein, and subsequent queries on the same target are handled in seconds thanks to caching of the prebuilt index.
+\noindent\textbf{Viewer Tools.} The viewer tools provide the functionality to load project files into the viewer, execute code in the viewer's IPython session for visualization control and structural manipulation, capture screenshots of the rendered state, and save modified objects back to the project workspace. The bridge between the harness and the viewer is a session-bound WebSocket, each chat holds a single persistent channel. Screenshots are returned to the agent automatically after most viewer operations, providing a vision channel for grounding subsequent reasoning.
 
+
+\noindent\textbf{Codebase Search.} The codebase search service holds vector indices over library codebases and their documentation, including MoleculeKit and HTMD \citep{Doerr2016}. This provides the agent with a fast semantic search over the codebase to inspect and discover how to use these scientific packages.
+
+\noindent\textbf{Literature Search.}\label{sec:data:literature} The literature tool assembles a protein-conditioned RAG corpus on demand. While the corpus is built from \emph{curated references from UniProt}, it accepts a UniProt accession, a PDB identifier, or a FASTA sequence; each is resolved to a set of UniProt entries (a PDB code maps through its cross-references, a FASTA sequence is matched against PDB structures and then to UniProt), and the references listed under those entries form the corpus. Open-access articles are fetched from PubMed Central and indexed with LlamaIndex~\citep{Liu_LlamaIndex_2022} into a per-protein vector store cached on disk and keyed on the FASTA hash (\cref{tab:literature-mcp}). At query time the agent issues a free-text query and receives the top-$k$ relevant passages with their citations. Index construction completes in one to two minutes for a new protein; subsequent queries on the same target are served from cache in seconds.
+
+
+\subsection{Scientific Skills}\label{sec:skills}
+
+\emph{Skills} are documentation packages that teach the agent how to use a particular database, library, or workflow~\citep{anthropic_skills_2025}. Each skill describes the relevant inputs and identifiers, the APIs to call, and idiomatic usage patterns, and may bundle example scripts the agent can adapt. Skills are exposed through progressive disclosure: at session start the agent receives only a one-line summary of every available skill, and reads the full body when one becomes relevant.
+
+We currently provide skills for protein and structure databases (UniProt, PDB, AlphaFoldDB), chemical and bioactivity databases (ChEMBL, PubChem, DrugBank, ZINC), gene and genomic databases (NCBI Gene, Ensembl), and biomedical literature retrieval (PubMed). New databases or workflows are added by authoring a new skill, without modifying the core system.
 
 
 
@@ -244,41 +206,19 @@ A key feature is the ability to control this viewer through natural language com
 
 
 \section{Experiments}\label{sec:cases}
-We present a set of illustrative case studies to show the capabilities and versatility of \emph{Speak to a Protein}. Throughout all experiments reported in this section, we employ \textbf{GPT-5.2} as the foundational language model driving the \emph{Speak to a Protein} agent.
+Evaluating agentic systems for computational biology is challenging: most existing benchmarks probe isolated capabilities rather than integrated, multi-step scientific work. We assess \emph{Speak to a Protein} on \emph{BixBench-Verified-50} \citep{phylo2026bixbenchverified} and complement the benchmark with two case studies on the dopamine D3 receptor (D3R) \citep{Chien2010} and cyclin-dependent kinase 2 (CDK2) \citep{Malumbres2009}, which illustrate how the system integrates data from multiple sources, generates insights through interactive multi-modal analysis, and produces a structured LaTeX summary report that doubles as a queryable, shareable knowledge base. All experiments use \textbf{GPT-5.4} as the foundational language model driving the agent.
 
-Evaluating agentic systems for computational chemistry is challenging: existing benchmarks target either language understanding or isolated tasks, but few assess integrated reasoning over 3D structures, databases, and domain tools. We therefore evaluate on two complementary benchmarks: a \emph{Simple Bio-Structural Benchmark} we developed to test basic computational chemistry capabilities; and \emph{LiveProteinBench}~\citep{liveproteinbench}, a contamination-free benchmark for protein property prediction.
-We also present two case studies using the dopamine D3 receptor (D3R) \citep{Chien2010} and cyclin-dependent kinase 2 (CDK2) \citep{Malumbres2009}. These examples highlight how the system enables users to ask scientific questions, integrate data from multiple sources, and generate insights through interactive multi-modal analysis. We demonstrate the system's ability to produce a structured summary report in LaTeX from all gathered information. By indexing this information, the system creates a queryable knowledge base that can be shared with other users.
+\subsection{BixBench-Verified-50}\label{subsec:bixbench}
+\emph{BixBench} \citep{mitchener2025bixbench} comprises real-world computational biology scenarios with open-answer questions covering data exploration, multi-step analytical workflows, and interpretation of nuanced results. Frontier models on the original benchmark scored near 17\% in the open-answer regime, exposing both genuine agent limitations and substantial benchmark noise. \emph{BixBench-Verified-50} \citep{phylo2026bixbenchverified} is a 50-task curated subset in which domain experts removed or rewrote ambiguous items and corrected faulty ground truths, isolating actual agent capability from the original benchmark's quality issues.
 
-\subsection{Bio-Structural Benchmark}\label{subsec:benchmark}
-We established a benchmark of 20 tasks designed to test capabilities essential for computational chemistry. The dataset spans two categories: (i) \textbf{Structural Geometry} (e.g., calculating RMSD, detecting steric clashes, measuring residue distances); and (ii) \textbf{Sequence Retrieval} (e.g., extracting specific chain sequences).
-We compared \emph{Speak to a Protein} against \emph{GPT-5.2} with web search and Python, representative of the tools increasingly adopted by scientists for research tasks. While this baseline offers reasoning capabilities, web access, and code execution, it lacks specialized biochemical tools, a persistent file system for cross-referencing API outputs, and integrated 3D visualization. Tasks were scored as correct or incorrect based on ground truth derived from programmatic calculations and database entries.
-\begin{figure}[H]
-\centering
-\includegraphics[width=1.0\columnwidth]{Figures/benchmark_by_category_filtered.png}
-\caption{\textbf{Simple Bio-Structural Benchmark}. Accuracy by category for \emph{Speak to a Protein} and \emph{GPT-5.2} (Web \& Python) on 23 curated tasks.}
-\label{fig:benchmark}
-\end{figure}
-As shown in \cref{fig:benchmark}, \emph{Speak to a Protein} achieved an accuracy of \textbf{90\% (18/20)}, significantly outperforming the baseline at \textbf{35\% (7/20)}. \emph{GPT-5.2} frequently failed on tasks requiring precise structural geometry or specific bioactivity data. While it represents a powerful general-purpose resource for scientists, it lacks the specialized infrastructure that computational chemists require. Its reliance on web search often resulted in retrieval errors, and without a specialized environment to manipulate and visualize molecular structures, it could not accurately derive geometric properties. In contrast, our system succeeded by executing analysis scripts and querying domain tools, ensuring that answers were derived directly from raw data and grounded in the interactive 3D viewer. The full list of benchmark questions is provided in Appendix \ref{app:benchmark_questions}.
-
-\subsection{Ablation study with LiveProteinBench}\label{subsec:liveproteinbench}
-To assess the specific impact of our scientific data tools, we conducted an ablation study using LiveProteinBench \citep{liveproteinbench}, a contamination-free benchmark organized into three categories: physicochemical properties, structural localization, and functional annotation. 
-
-In this experiment, we disabled the scientific data retrieval tools of \emph{Speak to a Protein}, restricting the system to its agentic 3D grounding and coding capabilities. Without access to specialized databases, \emph{Speak to a Protein} achieved an overall accuracy of \textbf{53\%}, performing similarly to GPT-5.2 at \textbf{51\%} (\cref{fig:liveproteinbench}). This stands in stark contrast to the Bio-Structural Benchmark (\cref{subsec:benchmark}), where our full system, equipped with all its tools, outperformed the baseline. This ablation study thus highlights that while 3D reasoning and code execution are vital for analysis, the scientific data tools are the primary drivers of domain-specific performance. Without them, the agent lacks the empirical evidence, such as the PDB structures themselves, necessary to ground its visual and computational capabilities.
-
-
-% To assess performance on protein property prediction, we evaluated on LiveProteinBench~\citep{liveproteinbench}, a contamination-free benchmark comprising 12 tasks organized into three categories. \emph{Physicochemical Properties} tests prediction of binding affinity ($K_d$), half-maximal effective concentration (EC$_{50}$), optimal pH, and optimal temperature. \emph{Structure \& Location} probes structural understanding through active site identification, cofactor prediction, motif position localization, and transmembrane region detection. \emph{Functional Annotation} evaluates broader biological knowledge via catalytic activity prediction, EC number assignment, and Gene Ontology (GO) term classification across molecular function, cellular component, and biological process. 
-% We compared \emph{Speak to a Protein} against GPT-5.2, both powered by the same underlying language model to isolate the effect of agentic capabilities. Unlike the original benchmark protocol, which provides models with expert-curated structural images, we supplied only the textual information and allowed each system to autonomously retrieve and visualize structures as needed. Scientific data retrieval tools were disabled to ensure a fair comparison of reasoning capabilities.
-
+BixBench-Verified-50 emphasises bioinformatics analysis tasks (sequencing, single-cell, statistical genomics) that partially overlap with the structural biology workflows \emph{Speak to a Protein} primarily targets, motivating the complementary case studies that follow. On this benchmark \emph{Speak to a Protein} reached \textbf{78.5\%} accuracy, surpassing strong general-purpose coding agents such as Claude Code with Opus 4.6 (65.3\%) and the OpenAI Agents SDK with GPT-5.2 (61.3\%), and matching Edison Analysis at 78.0\% (\cref{fig:bixbench}). The leading score is held by Biomni Lab \citep{huang2025biomni} at 88.7\%, a system whose tool catalogue and curated retrieval corpus are explicitly tuned for the bioinformatics workflows that dominate this benchmark. We read the result as encouraging: \emph{Speak to a Protein}'s agentic substrate transfers well outside its structural biology focus, while the remaining gap to a domain-tuned bioinformatics agent confirms the value of specialised tooling for specialised tasks.
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=1.0\columnwidth]{Figures/liveproteinbench_results.png}
-\caption{\textbf{LiveProteinBench Performance.} Accuracy by task for \emph{Speak to a Protein} and GPT-5.2 across 12 protein property prediction tasks. Dashed line indicates random baseline (25\%).}
-\label{fig:liveproteinbench}
+\includegraphics[width=0.85\columnwidth]{Figures/bixbench_verified_stap.png}
+\caption{Accuracy on BixBench-Verified-50 \citep{phylo2026bixbenchverified}. Baseline scores are reproduced from the public leaderboard; error bars for \emph{Speak to a Protein} indicate variability across repeated runs.}
+\label{fig:bixbench}
 \end{figure}
-% As shown in \cref{fig:liveproteinbench}, \emph{Speak to a Protein} achieved an overall accuracy of \textbf{51\%}, outperforming the baseline at \textbf{49\%}. The results suggest that while coding tools and agentic 3D capabilities provide measurable benefits, further improvements in protein-specific tasks will likely require integration of specialized scientific tools and domain-specific models.
-
-% The tasks in LiveProteinBench, and most challenges in computational chemistry and biology, require capabilities that extend beyond general reasoning, multimodality, and code execution. Accurate prediction of binding affinities, optimal reaction conditions, or enzyme classification fundamentally depends on specialized tools: molecular dynamics simulations, quantum mechanical calculations, sequence alignment algorithms, and domain-specific predictive models trained on biochemical data. While agentic 3D 3D grounding can provide incremental gains beyond a strong general-purpose model, it cannot substitute for the quantitative methods that underpin rigorous computational biochemistry. Future work will focus on integrating such specialized tools into our agentic framework to address these limitations.
 
 \subsection{Speaking about the Dopamine D3 receptor (D3R)}
 We use \emph{Speak to a Protein} to address a series of research questions related to D3R,  a G protein-coupled receptor of significant pharmacological interest.
