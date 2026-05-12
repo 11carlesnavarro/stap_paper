@@ -19,7 +19,6 @@
 \usepackage{caption}
 \usepackage{verbatim}
 \usepackage{hyperref}
-\usepackage{xr}
 \usepackage[capitalize,noabbrev]{cleveref}
 
 \newif\ifrevision
@@ -61,7 +60,6 @@
   bottom=10pt,
   breakable,
 }
-\externaldocument{.build/main}
 
 \author{Carles Navarro}
 \email{c.navarro@acellera.com}
@@ -118,172 +116,12 @@
 
 
 
-\begin{table}[!htbp]
-\caption{Fields returned by the UniProt MCP. Two panels are shown: the upper panel lists fields from the \textbf{text search} tool (multiple candidate entries for a text query such as "CDK2"); the lower panel lists fields from the \textbf{data lookup} tool (detailed entries for a UniProt accession or PDB identifier).}
-\label{tab:uniprot-mcp-cdk2}
-\begin{center}
-\begin{tabularx}{\textwidth}{p{5.5cm}X}
-\toprule
-\multicolumn{1}{c}{\bf Field (per entry)} & \multicolumn{1}{c}{\bf Description / Example Value} \\
-\midrule
-\multicolumn{2}{l}{\bf Panel A — Text search tool} \\
-\midrule
-\texttt{entries[].entry\_type} & UniProt record type (reviewed/unreviewed). \\
-\addlinespace
-\texttt{entries[].uniprot\_accession} & Primary accession. \emph{Example:} "P24941" (human CDK2). \\
-\addlinespace
-\texttt{entries[].knowledgebase\_id} & Human-readable ID. \emph{Example:} ["CDK2\_HUMAN", "CDK2\_MOUSE"]. \\
-\addlinespace
-\texttt{entries[].name} & Recommended, short and alternative protein names. \emph{Example:} "Cyclin-dependent kinase 2", "p33", "Cell division protein kinase 2". \\
-\addlinespace
-\texttt{entries[].organism} & Common and scientific names. \emph{Example:} "Human — Homo sapiens". \\
-\addlinespace
-\texttt{entries[].annotation\_score} & Curation score string. \emph{Example:} "5.0 out of 5". \\
-\addlinespace
-\texttt{entries[].keywords[]} & Keyword strings (category: name). \emph{Example:} ["Ligand: ATP-binding", "Molecular function: Kinase"] \\
-
-\midrule
-\multicolumn{2}{l}{\bf Panel B — Data lookup tool} \\
-\midrule
-
-\texttt{primaryAccession} & Canonical accession. \emph{Example:} "P24941". \\
-\addlinespace
-\texttt{uniProtkbId} & Human-readable ID. \emph{Example:} "CDK2\_HUMAN". \\
-\addlinespace
-\texttt{entryType} & Record type (reviewed/unreviewed). \\
-\addlinespace
-\texttt{organism} & Common and scientific names. \emph{Example:} "Human — Homo sapiens". \\
-\addlinespace
-\texttt{proteinDescription} & Recommended full name and alternatives. \emph{Example:} "Cyclin-dependent kinase 2", alt: ["p33 protein kinase"]. \\
-\addlinespace
-\texttt{genes[]} & Gene symbols and synonyms. \emph{Example:} ["CDK2", "CDKN2"]. \\
-\addlinespace
-\texttt{comments[]} & Curated comment blocks (FUNCTION, SUBUNIT, PTM, ...). \emph{Example:} FUNCTION describes CDK2 roles at G1/S. \\
-\addlinespace
-\texttt{features[]} & Sequence features ("\texttt{type — start:end}"). \emph{Example:} "Active site — 127:127". \\
-\addlinespace
-\texttt{references[]} & Bibliography (title, first author, date, journal, refs, focus). \\
-\addlinespace
-\texttt{crossref[]} & External cross-refs as "Database:ID". \emph{Example:} ["PDB:1H1Q", "DrugBank:DB07755"]. \\
-\addlinespace
-\texttt{keywords[]} & Structured keywords with category and name. \emph{Example:} ["Molecular function: Kinase"]. \\
-\addlinespace
-\texttt{sequence} & Full amino acid sequence. \emph{Example:} "MENF…HRL". \\
-\addlinespace
-\texttt{annotationScore} & Numerical annotation score. \emph{Example:} 5.0. \\
-\addlinespace
-\texttt{proteinExistence} & Evidence level. \emph{Example:} "1: Evidence at protein level". \\
-\addlinespace
-\texttt{secondaryAccessions[]} & Secondary accessions, if any. \\
-\addlinespace
-\texttt{entryAudit} & Versioning and dates. \emph{Example:} first public 1992-03-01; last update 2025-06-18. \\
-\addlinespace
-\texttt{extraAttributes} & Derived counts (comment/feature types) and UniParc ID. \\
-\addlinespace
-\texttt{error} & Error message if something went wrong; empty otherwise. \\
-\bottomrule
-\end{tabularx}
-\end{center}
-\end{table}
-
-
-
-\begin{table}[!htbp]
-\caption{Fields returned by the ChEMBL MCP. Global fields describe the assay query context and where results are stored; entries contain per-assay measurements with assay metadata, compound identifiers, and activity values.}
-\label{tab:chembl-mcp}
-\begin{center}
-\begin{tabularx}{\textwidth}{p{6cm}X}
-\toprule
-\multicolumn{1}{c}{\bf Field} & \multicolumn{1}{c}{\bf Description / Example Value} \\
-\midrule
-\texttt{assay\_type} & Type of assay retrieved from ChEMBL. \emph{Example:} "functional". \\
-\addlinespace
-\texttt{data\_csv\_path} & File path on disk to the cached CSV table of results, available to the LLM in a sandboxed coding environment. \\
-\addlinespace
-\texttt{num\_entries} & Total number of entries returned by the query. \emph{Example:} 927. \\
-\addlinespace
-\texttt{top\_n} & Number of top entries actually included in the response. \emph{Example:} 20. \\
-\addlinespace
-\texttt{entries[].assay\_chembl\_id} & ChEMBL identifier of the assay. \emph{Example:} "CHEMBL663764". \\
-\addlinespace
-\texttt{entries[].assay\_description} & Description of the assay protocol. \emph{Example:} "Percentage A2780 cells in sub-G1 after 24 hr at 330 nM (IC50)". \\
-\addlinespace
-\texttt{entries[].assay\_type} & Short assay type code. \emph{Example:} "F". \\
-\addlinespace
-\texttt{entries[].bao\_label} & BAO (BioAssay Ontology) label describing the assay format. \emph{Example:} "cell-based format". \\
-\addlinespace
-\texttt{entries[].molecule\_chembl\_id} & ChEMBL identifier of the tested compound. \emph{Example:} "CHEMBL428690". \\
-\addlinespace
-\texttt{entries[].molecule\_pref\_name} & Preferred molecule name, if available. \emph{Example:} "ALVOCIDIB". \\
-\addlinespace
-\texttt{entries[].canonical\_smiles} & Canonical SMILES string of the compound. \\
-\addlinespace
-\texttt{entries[].document\_chembl\_id} & Identifier of the source publication in ChEMBL. \emph{Example:} "CHEMBL1135763". \\
-\addlinespace
-\texttt{entries[].document\_journal} & Journal of publication (if known). \emph{Example:} "J Med Chem". \\
-\addlinespace
-\texttt{entries[].document\_year} & Year of publication (if known). \emph{Example:} 2002. \\
-\addlinespace
-\texttt{entries[].standard\_relation} & Relation operator for the reported value. \emph{Example:} "=". \\
-\addlinespace
-\texttt{entries[].standard\_type} & Type of activity measured. \emph{Example:} "Ki", "Cell cycle". \\
-\addlinespace
-\texttt{entries[].standard\_units} & Units of measurement. \emph{Example:} "nM". \\
-\addlinespace
-\texttt{entries[].standard\_value} & Reported numeric value. \emph{Example:} "1.0", "100.0". \\
-\bottomrule
-\end{tabularx}
-\end{center}
-\end{table}
-
-\begin{table}[!htbp]
-\caption{Fields returned by the PDB MCP. The tool can fetch information for a single PDB ID or a list of them. For a single ID, it returns a dictionary; for multiple, a list of dictionaries.}
-\label{tab:pdb-mcp}
-\centering
-\begin{tabularx}{\textwidth}{p{5.5cm}X}
-\toprule
-\multicolumn{1}{c}{\bf Field} & \multicolumn{1}{c}{\bf Description / Example Value} \\
-\midrule
-\texttt{pdb\_id} & PDB identifier. \emph{Example:} "1AQ1" \\
-\addlinespace
-\texttt{title} & Title of the PDB entry. \\
-\addlinespace
-\texttt{experimental\_method} & Experimental technique used. \emph{Example:} "X-RAY DIFFRACTION" \\
-\addlinespace
-\texttt{resolution\_angstrom} & Resolution of the structure in angstroms. \emph{Example:} 2.1 \\
-\addlinespace
-\texttt{publication\_year} & Year of the primary publication. \\
-\addlinespace
-\texttt{authors} & List of authors of the publication. \\
-\addlinespace
-\texttt{journal} & Abbreviated journal name. \emph{Example:} "Cell" \\
-\addlinespace
-\texttt{doi} & Digital Object Identifier for the publication. \\
-\addlinespace
-\texttt{deposit\_date} & Date the structure was deposited. \\
-\addlinespace
-\texttt{release\_date} & Date the structure was released. \\
-\addlinespace
-\texttt{small\_molecules[]} & List of dictionaries, one for each co-crystallized small molecule ligand. \\
-\addlinespace
-\texttt{small\_molecules[].het\_id} & Heterogen ID of the ligand. \emph{Example:} "STU" \\
-\addlinespace
-\texttt{small\_molecules[].name} & Name of the ligand. \emph{Example:} "STAUROSPORINE" \\
-\addlinespace
-\texttt{small\_molecules[].smiles} & SMILES string of the ligand. \\
-\addlinespace
-\texttt{small\_molecules[].inchi\_key} & InChIKey of the ligand. \\
-\addlinespace
-\texttt{small\_molecules[].chembl\_id} & ChEMBL ID of the ligand, if available. \emph{Example:} "CHEMBL388673" \\
-\bottomrule
-\end{tabularx}
-\end{table}
 
 
 \clearpage
 \subsection{Auto-Generated CDK2 Analysis Report}\label{sec:appendix_cdk2_report}
 
-The following pages reproduce the complete report generated by \emph{Speak to a Protein} for the CDK2 case study, exactly as written by the agent from the single prompt shown in \cref{subsec:cdk2}. No formatting or content has been altered.
+The following pages reproduce the complete report generated by \emph{Speak to a Protein} for the CDK2 case study, exactly as written by the agent from the single prompt shown in Section~4.3 of the main paper. No formatting or content has been altered.
 
 \includepdf[pages=-,pagecommand={\thispagestyle{plain}}]{cdk2_report.pdf}
 
